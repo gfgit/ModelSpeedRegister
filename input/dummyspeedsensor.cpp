@@ -32,6 +32,8 @@ void DummySpeedSensor::timerEvent(QTimerEvent *e)
 void DummySpeedSensor::start()
 {
     stop();
+
+    generateRandomSpeedCurve();
     mTimerId = startTimer(1000);
     mElapsedTimer.start();
 }
