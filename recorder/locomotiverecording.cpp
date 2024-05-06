@@ -15,7 +15,8 @@ void LocomotiveRecording::addItem(const RecordingItem &item)
 
     const int halfWindow = (MovingAverageWindow - 1) / 2;
     const int lastAvgItem = lastItemIndex - halfWindow;
-    calculateMovingAverage(lastAvgItem);
+    if(lastAvgItem >= halfWindow)
+        calculateMovingAverage(lastAvgItem);
 }
 
 void LocomotiveRecording::calculateMovingAverage(int index)

@@ -24,6 +24,8 @@ public:
 
     void addItem(const RecordingItem& item);
 
+    inline RecordingItem getItemAt(int index) const { return mItems.at(index); }
+
 signals:
     void itemChanged(int index);
 
