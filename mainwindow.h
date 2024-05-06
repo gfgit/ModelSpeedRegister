@@ -7,6 +7,12 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+class RecordingManager;
+class LocomotiveRecordingView;
+
+class DummySpeedSensor;
+class DummyCommandStation;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -17,5 +23,11 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    LocomotiveRecordingView *mRecView;
+    RecordingManager *mRecManager;
+
+    DummySpeedSensor *mSpeedSensor;
+    DummyCommandStation *mCommandStation;
 };
 #endif // MAINWINDOW_H
