@@ -15,6 +15,21 @@ class RecordingManager : public QObject
     Q_OBJECT
 public:
     explicit RecordingManager(QObject *parent = nullptr);
+    ~RecordingManager();
+
+    ICommandStation *commandStation() const;
+    void setCommandStation(ICommandStation *newCommandStation);
+
+    ISpeedSensor *speedSensor() const;
+    void setSpeedSensor(ISpeedSensor *newSpeedSensor);
+
+    LocomotiveRecording *currentRecording() const;
+
+    void timerEvent(QTimerEvent *e) override;
+
+public slots:
+    void start();
+    void stop();
 
 private slots:
     void onNewSpeedReading(double metersPerSecond, LocomotiveDirection direction, qint64 timestampMilliSec);
@@ -29,6 +44,8 @@ private:
     int actualDCCStep = 0;
 
     LocomotiveRecording *m_currentRecording;
+
+    int mTimerId = 0;
 };
 
 #endif // RECORDINGMANAGER_H
