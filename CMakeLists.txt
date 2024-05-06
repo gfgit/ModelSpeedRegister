@@ -22,6 +22,9 @@ set(PROJECT_SOURCES
         commandstation/icommandstation.cpp
         commandstation/utils.h
 
+        commandstation/dummycommandstation.h
+        commandstation/dummycommandstation.cpp
+
         input/ispeedsensor.h
         input/ispeedsensor.cpp
 
@@ -43,6 +46,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         recorder/recordingmanager.h recorder/recordingmanager.cpp
         recorder/locomotiverecording.h recorder/locomotiverecording.cpp
         view/locomotiverecordingview.h view/locomotiverecordingview.cpp
+        commandstation/dummycommandstation.h commandstation/dummycommandstation.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
