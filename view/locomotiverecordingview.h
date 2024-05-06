@@ -2,6 +2,7 @@
 #define LOCOMOTIVERECORDINGVIEW_H
 
 #include <QWidget>
+#include <QLineSeries>
 
 class QChartView;
 
@@ -23,6 +24,11 @@ private:
     LocomotiveRecording *mRecording = nullptr;
 
     QChartView *mChartView;
+
+    QLineSeries mSpeedSeries;
+    QLineSeries mSpeedAVGSeries;
+    QLineSeries mReqStepSeries;
+    QLineSeries mActualStepSeries;
 };
 
 #endif // LOCOMOTIVERECORDINGVIEW_H
