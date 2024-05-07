@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Charts)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Charts Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts Network)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -24,6 +24,11 @@ set(PROJECT_SOURCES
 
         commandstation/dummycommandstation.h
         commandstation/dummycommandstation.cpp
+
+        commandstation/backends/endian.h
+        commandstation/backends/z21messages.h
+        commandstation/backends/z21commandstation.h
+        commandstation/backends/z21commandstation.cpp
 
         input/ispeedsensor.h
         input/ispeedsensor.cpp
@@ -64,6 +69,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         view/locospeedcurveview.h view/locospeedcurveview.cpp
         chart/chartview.h chart/chartview.cpp
         chart/chart.h chart/chart.cpp
+        commandstation/backends/endian.h
+        commandstation/backends/z21messages.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -86,6 +93,7 @@ endif()
 target_link_libraries(ModelSpeedRegister PRIVATE
     Qt6::Widgets
     Qt6::Charts
+    Qt6::Network
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

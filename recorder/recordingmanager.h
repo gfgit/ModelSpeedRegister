@@ -39,7 +39,7 @@ private:
     ICommandStation *mCommandStation = nullptr;
     ISpeedSensor *mSpeedSensor = nullptr;
 
-    int locomotiveDCCAddress = 0;
+    int locomotiveDCCAddress = 3;
     int requestedDCCStep = 0;
     int actualDCCStep = 0;
 

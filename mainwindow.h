@@ -14,7 +14,7 @@ class LocoSpeedCurve;
 class LocoSpeedCurveView;
 
 class DummySpeedSensor;
-class DummyCommandStation;
+class ICommandStation;
 
 class MainWindow : public QMainWindow
 {
@@ -34,6 +34,6 @@ private:
     LocoSpeedCurveView *mSpeedCurveView;
 
     DummySpeedSensor *mSpeedSensor;
-    DummyCommandStation *mCommandStation;
+    ICommandStation *mCommandStation;
 };
 #endif // MAINWINDOW_H

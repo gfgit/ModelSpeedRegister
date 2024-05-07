@@ -9,6 +9,7 @@
 
 #include "input/dummyspeedsensor.h"
 #include "commandstation/dummycommandstation.h"
+#include "commandstation/backends/z21commandstation.h"
 
 #include <QHBoxLayout>
 
@@ -33,11 +34,12 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(w);
 
     mRecManager = new RecordingManager(this);
-    mSpeedCurve = new LocoSpeedCurve;
+    mSpeedCurve = new LocoSpeedCurve(this);
     mSpeedCurve->setRecording(mRecManager->currentRecording());
 
-    mSpeedSensor = new DummySpeedSensor;
+    mSpeedSensor = new DummySpeedSensor(this);
     mCommandStation = new DummyCommandStation;
+    //mCommandStation = new Z21CommandStation(this);
 
     connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
             [sensor = mSpeedSensor](int /*address*/, int speedStep)
