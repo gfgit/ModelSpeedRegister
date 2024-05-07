@@ -4,8 +4,13 @@
 #include "recorder/recordingmanager.h"
 #include "view/locomotiverecordingview.h"
 
+#include "recorder/locospeedcurve.h"
+#include "view/locospeedcurveview.h"
+
 #include "input/dummyspeedsensor.h"
 #include "commandstation/dummycommandstation.h"
+
+#include <QHBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -14,9 +19,22 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     mRecView = new LocomotiveRecordingView;
-    setCentralWidget(mRecView);
+    mSpeedCurveView = new LocoSpeedCurveView;
+
+    QWidget *w = new QWidget;
+
+    // Grap gesture for zoom
+    w->grabGesture(Qt::PanGesture);
+    w->grabGesture(Qt::PinchGesture);
+
+    QHBoxLayout *lay = new QHBoxLayout(w);
+    lay->addWidget(mRecView);
+    lay->addWidget(mSpeedCurveView);
+    setCentralWidget(w);
 
     mRecManager = new RecordingManager(this);
+    mSpeedCurve = new LocoSpeedCurve;
+    mSpeedCurve->setRecording(mRecManager->currentRecording());
 
     mSpeedSensor = new DummySpeedSensor;
     mCommandStation = new DummyCommandStation;
@@ -31,12 +49,14 @@ MainWindow::MainWindow(QWidget *parent)
     mRecManager->setSpeedSensor(mSpeedSensor);
 
     mRecView->setRecording(mRecManager->currentRecording());
+    mSpeedCurveView->setSpeedCurve(mSpeedCurve);
 
     connect(ui->actionStart, &QAction::triggered, this,
             [this]()
             {
                 mSpeedSensor->start();
                 mRecManager->start();
+                mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
             });
 
     connect(ui->actionStop, &QAction::triggered, this,

@@ -35,9 +35,13 @@ set(PROJECT_SOURCES
         recorder/recordingmanager.cpp
         recorder/locomotiverecording.h
         recorder/locomotiverecording.cpp
+        recorder/locospeedcurve.h
+        recorder/locospeedcurve.cpp
 
         view/locomotiverecordingview.h
         view/locomotiverecordingview.cpp
+        view/locospeedcurveview.h
+        view/locospeedcurveview.cpp
 
         chart/chartview.h
         chart/chartview.cpp
@@ -56,6 +60,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         view/locomotiverecordingview.h view/locomotiverecordingview.cpp
         commandstation/dummycommandstation.h commandstation/dummycommandstation.cpp
         input/dummyspeedsensor.h input/dummyspeedsensor.cpp
+        recorder/locospeedcurve.h recorder/locospeedcurve.cpp
+        view/locospeedcurveview.h view/locospeedcurveview.cpp
         chart/chartview.h chart/chartview.cpp
         chart/chart.h chart/chart.cpp
     )
