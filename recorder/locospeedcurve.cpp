@@ -27,19 +27,19 @@ void LocoSpeedCurve::setRecording(LocomotiveRecording *newRecording)
     if(mRecording)
     {
         connect(mRecording, &LocomotiveRecording::itemChanged, this, &LocoSpeedCurve::onItemChanged);
-    }
 
-    // Fill initial values
-    for(int i = 0; i < mRecording->getItemCount(); i++)
-    {
-        const RecordingItem item = mRecording->getItemAt(i);
-        mSpeedCurve.insert(item.actualSpeedStep, item.metersPerSecondAvg);
-    }
+        // Fill initial values
+        for(int i = 0; i < mRecording->getItemCount(); i++)
+        {
+            const RecordingItem item = mRecording->getItemAt(i);
+            mSpeedCurve.insert(item.actualSpeedStep, item.metersPerSecondAvg);
+        }
 
-    const auto keys = mSpeedCurve.keys();
-    for(int key : keys)
-    {
-        emit speedCurveChanged(key, mSpeedCurve.values(key));
+        const auto keys = mSpeedCurve.keys();
+        for(int key : keys)
+        {
+            emit speedCurveChanged(key, mSpeedCurve.values(key));
+        }
     }
 }
 

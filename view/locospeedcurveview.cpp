@@ -78,12 +78,12 @@ void LocoSpeedCurveView::setSpeedCurve(LocoSpeedCurve *newSpeedCurve)
     if(mSpeedCurve)
     {
         connect(mSpeedCurve, &LocoSpeedCurve::speedCurveChanged, this, &LocoSpeedCurveView::onCurveChanged);
-    }
 
-    const auto speedCurve = mSpeedCurve->speedCurve();
-    for(int key : speedCurve.keys())
-    {
-        onCurveChanged(key, speedCurve.values(key));
+        const auto speedCurve = mSpeedCurve->speedCurve();
+        for(int key : speedCurve.keys())
+        {
+            onCurveChanged(key, speedCurve.values(key));
+        }
     }
 }
 

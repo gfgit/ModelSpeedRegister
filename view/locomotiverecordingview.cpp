@@ -17,11 +17,11 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
     mChart->setLocalizeNumbers(false);
 
     mAxisX = new QValueAxis(this);
-    mAxisX->setRange(0, 100000);
-    mAxisX->setLabelFormat("%d");
-    mAxisX->setTitleText("Time (msec)");
+    mAxisX->setRange(0, 10);
+    mAxisX->setLabelFormat("%.0f");
+    mAxisX->setTitleText("Time (sec)");
     mAxisX->setTickType(QValueAxis::TicksDynamic);
-    mAxisX->setTickInterval(1000);
+    mAxisX->setTickInterval(1);
 
     mAxisY = new QValueAxis(this);
     mAxisY->setRange(0, 50);
@@ -71,6 +71,8 @@ LocomotiveRecording *LocomotiveRecordingView::recording() const
 
 void LocomotiveRecordingView::setRecording(LocomotiveRecording *newRecording)
 {
+    onItemChanged(-1); // Clear
+
     if(mRecording)
     {
         disconnect(mRecording, &LocomotiveRecording::itemChanged, this, &LocomotiveRecordingView::onItemChanged);
@@ -81,12 +83,12 @@ void LocomotiveRecordingView::setRecording(LocomotiveRecording *newRecording)
     if(mRecording)
     {
         connect(mRecording, &LocomotiveRecording::itemChanged, this, &LocomotiveRecordingView::onItemChanged);
-    }
 
-    // Fill initial values
-    for(int i = 0; i < mRecording->getItemCount(); i++)
-    {
-        onItemChanged(i);
+        // Fill initial values
+        for(int i = 0; i < mRecording->getItemCount(); i++)
+        {
+            onItemChanged(i);
+        }
     }
 }
 
@@ -111,17 +113,17 @@ void LocomotiveRecordingView::onItemChanged(int index)
 
         qDebug() << "UPDATE time:" << item.timestampMilliSec;
 
-        qint64 lastTimestamp = 0;
+        qint64 lastX = 0;
         if(mSpeedSeries.count())
-            lastTimestamp = mSpeedSeries.at(mSpeedSeries.count() - 1).x();
+            lastX = mSpeedSeries.at(mSpeedSeries.count() - 1).x();
 
-        if(mAxisX->max() < lastTimestamp)
-            mAxisX->setMax(lastTimestamp + 1000);
+        if(mAxisX->max() < lastX)
+            mAxisX->setMax(lastX + 5);
 
         for(int i = mSpeedSeries.count(); i <= index; i++)
         {
             // Fill in new points
-            QPoint p(lastTimestamp, 0);
+            QPoint p(lastX, 0);
             mSpeedSeries.append(p);
             mSpeedAVGSeries.append(p);
             mReqStepSeries.append(p);
@@ -132,8 +134,10 @@ void LocomotiveRecordingView::onItemChanged(int index)
     if(item.metersPerSecond > mAxisY->max())
         mAxisY->setMax(item.metersPerSecond + 10);
 
-    mSpeedSeries.replace(index, item.timestampMilliSec, item.metersPerSecond);
-    mSpeedAVGSeries.replace(index, item.timestampMilliSec, item.metersPerSecondAvg);
-    mReqStepSeries.replace(index, item.timestampMilliSec, item.requestedSpeedStep);
-    mActualStepSeries.replace(index, item.timestampMilliSec, item.actualSpeedStep);
+    const qreal newX = qreal(item.timestampMilliSec) / 1000.0;
+
+    mSpeedSeries.replace(index, newX, item.metersPerSecond);
+    mSpeedAVGSeries.replace(index, newX, item.metersPerSecondAvg);
+    mReqStepSeries.replace(index, newX, item.requestedSpeedStep);
+    mActualStepSeries.replace(index, newX, item.actualSpeedStep);
 }
