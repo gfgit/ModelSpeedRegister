@@ -76,6 +76,8 @@ void RecordingManager::start()
 {
     stop();
 
+    m_currentRecording->clear();
+
     requestedDCCStep = 0;
     if(mCommandStation)
     {
@@ -84,7 +86,7 @@ void RecordingManager::start()
                                             LocomotiveDirection::Forward);
     }
 
-    mTimerId = startTimer(3000);
+    mTimerId = startTimer(1500);
 }
 
 void RecordingManager::stop()

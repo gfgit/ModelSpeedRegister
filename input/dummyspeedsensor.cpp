@@ -19,7 +19,7 @@ void DummySpeedSensor::timerEvent(QTimerEvent *e)
     if(e->timerId() == mTimerId)
     {
         double currentSpeed = mSpeedCurve.at(mCurrentStep);
-        const double MAX_OSCILLATION = 2.0;
+        const double MAX_OSCILLATION = 4.0;
         double noise = QRandomGenerator::global()->bounded(MAX_OSCILLATION) - MAX_OSCILLATION / 2;
         currentSpeed += noise;
         emit speedReading(currentSpeed, LocomotiveDirection::Forward, mElapsedTimer.elapsed());
@@ -34,7 +34,7 @@ void DummySpeedSensor::start()
     stop();
 
     generateRandomSpeedCurve();
-    mTimerId = startTimer(1000);
+    mTimerId = startTimer(100);
     mElapsedTimer.start();
 }
 
@@ -56,11 +56,16 @@ void DummySpeedSensor::generateRandomSpeedCurve()
 {
     mSpeedCurve.resize(127);
     mSpeedCurve[0] = 0;
-    const double MAX_INCREMENT = 5.0;
+    const double MAX_INCREMENT = 8.0;
 
     for(int i = 1; i < 127; i++)
     {
         double increment = QRandomGenerator::global()->bounded(MAX_INCREMENT);
         mSpeedCurve[i] = mSpeedCurve[i - 1] + increment;
     }
+}
+
+QVector<double> DummySpeedSensor::speedCurve() const
+{
+    return mSpeedCurve;
 }

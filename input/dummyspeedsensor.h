@@ -14,6 +14,8 @@ public:
 
     void timerEvent(QTimerEvent *e) override;
 
+    QVector<double> speedCurve() const;
+
 public slots:
     void start();
     void stop();

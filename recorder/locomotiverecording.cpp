@@ -11,12 +11,18 @@ void LocomotiveRecording::addItem(const RecordingItem &item)
     mItems.append(item);
 
     const int lastItemIndex = mItems.size() - 1;
-    emit itemChanged(lastItemIndex);
+    emit itemChanged(lastItemIndex, {});
 
     const int halfWindow = (MovingAverageWindow - 1) / 2;
     const int lastAvgItem = lastItemIndex - halfWindow;
     if(lastAvgItem >= halfWindow)
         calculateMovingAverage(lastAvgItem);
+}
+
+void LocomotiveRecording::clear()
+{
+    mItems.clear();
+    emit itemChanged(-1, {});
 }
 
 void LocomotiveRecording::calculateMovingAverage(int index)
@@ -34,6 +40,7 @@ void LocomotiveRecording::calculateMovingAverage(int index)
         sum += mItems[i].metersPerSecond;
     }
 
+    const RecordingItem oldItem = mItems[index];
     mItems[index].metersPerSecondAvg = sum / MovingAverageWindow;
-    emit itemChanged(index);
+    emit itemChanged(index, oldItem);
 }

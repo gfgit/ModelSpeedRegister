@@ -10,7 +10,7 @@ DummyCommandStation::DummyCommandStation(QObject *parent)
 
 bool DummyCommandStation::setLocomotiveSpeed(int address, int speedStep, LocomotiveDirection direction)
 {
-    QTimer::singleShot(500, this, [this, address, speedStep, direction]()
+    QTimer::singleShot(300, this, [this, address, speedStep, direction]()
                        {
                            locomotiveSpeedFeedback(address, speedStep, direction);
                        });
@@ -19,7 +19,7 @@ bool DummyCommandStation::setLocomotiveSpeed(int address, int speedStep, Locomot
 
 bool DummyCommandStation::emergencyStop(int address)
 {
-    QTimer::singleShot(500, this, [this, address]()
+    QTimer::singleShot(300, this, [this, address]()
                        {
                            locomotiveSpeedFeedback(address, 0, LocomotiveDirection::Forward);
                        });

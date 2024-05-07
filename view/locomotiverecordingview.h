@@ -4,7 +4,9 @@
 #include <QWidget>
 #include <QLineSeries>
 
-class QChartView;
+class Chart;
+class ChartView;
+class QValueAxis;
 
 class LocomotiveRecording;
 
@@ -23,12 +25,16 @@ private slots:
 private:
     LocomotiveRecording *mRecording = nullptr;
 
-    QChartView *mChartView;
+    Chart *mChart;
+    ChartView *mChartView;
 
     QLineSeries mSpeedSeries;
     QLineSeries mSpeedAVGSeries;
     QLineSeries mReqStepSeries;
     QLineSeries mActualStepSeries;
+
+    QValueAxis *mAxisX;
+    QValueAxis *mAxisY;
 };
 
 #endif // LOCOMOTIVERECORDINGVIEW_H

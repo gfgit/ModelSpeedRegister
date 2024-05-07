@@ -25,9 +25,11 @@ public:
     void addItem(const RecordingItem& item);
 
     inline RecordingItem getItemAt(int index) const { return mItems.at(index); }
+    inline int getItemCount() const { return mItems.count(); }
+    void clear();
 
 signals:
-    void itemChanged(int index);
+    void itemChanged(int index, const RecordingItem& oldItem);
 
 private:
     void calculateMovingAverage(int index);
@@ -39,7 +41,7 @@ private:
     QString mRecordingName;
     QDateTime mRecordingDate;
 
-    const int MovingAverageWindow = 5;
+    const int MovingAverageWindow = 9;
 };
 
 #endif // LOCOMOTIVERECORDING_H
