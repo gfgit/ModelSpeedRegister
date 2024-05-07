@@ -38,6 +38,11 @@ set(PROJECT_SOURCES
 
         view/locomotiverecordingview.h
         view/locomotiverecordingview.cpp
+
+        chart/chartview.h
+        chart/chartview.cpp
+        chart/chart.h
+        chart/chart.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -51,6 +56,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         view/locomotiverecordingview.h view/locomotiverecordingview.cpp
         commandstation/dummycommandstation.h commandstation/dummycommandstation.cpp
         input/dummyspeedsensor.h input/dummyspeedsensor.cpp
+        chart/chartview.h chart/chartview.cpp
+        chart/chart.h chart/chart.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
