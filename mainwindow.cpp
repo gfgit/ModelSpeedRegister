@@ -67,6 +67,13 @@ MainWindow::MainWindow(QWidget *parent)
                 mSpeedSensor->stop();
                 mRecManager->stop();
             });
+
+    connect(ui->actionEmergency_Stop, &QAction::triggered, this,
+            [this]()
+            {
+                mRecManager->emergencyStop();
+                mSpeedSensor->stop();
+            });
 }
 
 MainWindow::~MainWindow()

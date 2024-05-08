@@ -29,6 +29,7 @@
     </property>
     <addaction name="actionStart"/>
     <addaction name="actionStop"/>
+    <addaction name="actionEmergency_Stop"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -41,6 +42,11 @@
   <action name="actionStop">
    <property name="text">
     <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionEmergency_Stop">
+   <property name="text">
+    <string>Emergency Stop</string>
    </property>
   </action>
  </widget>

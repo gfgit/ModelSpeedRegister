@@ -30,6 +30,7 @@ public:
 public slots:
     void start();
     void stop();
+    void emergencyStop();
 
 private slots:
     void onNewSpeedReading(double metersPerSecond, LocomotiveDirection direction, qint64 timestampMilliSec);

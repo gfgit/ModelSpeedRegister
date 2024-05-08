@@ -99,6 +99,17 @@ void RecordingManager::stop()
     }
 }
 
+void RecordingManager::emergencyStop()
+{
+    stop();
+
+    // Stop the locomotive
+    if(mCommandStation)
+    {
+        mCommandStation->emergencyStop(locomotiveDCCAddress);
+    }
+}
+
 ISpeedSensor *RecordingManager::speedSensor() const
 {
     return mSpeedSensor;
