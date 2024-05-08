@@ -78,14 +78,6 @@ void RecordingManager::start()
 
     m_currentRecording->clear();
 
-    requestedDCCStep = 0;
-    if(mCommandStation)
-    {
-        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
-                                            requestedDCCStep,
-                                            LocomotiveDirection::Forward);
-    }
-
     mTimerId = startTimer(1500);
 }
 
@@ -95,6 +87,15 @@ void RecordingManager::stop()
     {
         killTimer(mTimerId);
         mTimerId = 0;
+    }
+
+    // Stop the locomotive
+    requestedDCCStep = 0;
+    if(mCommandStation)
+    {
+        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
+                                            requestedDCCStep,
+                                            LocomotiveDirection::Forward);
     }
 }
 
