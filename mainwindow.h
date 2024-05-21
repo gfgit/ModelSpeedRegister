@@ -16,6 +16,8 @@ class LocoSpeedCurveView;
 class DummySpeedSensor;
 class ICommandStation;
 
+class QTabWidget;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -35,5 +37,7 @@ private:
 
     DummySpeedSensor *mSpeedSensor;
     ICommandStation *mCommandStation;
+
+    QTabWidget *mTabWidget;
 };
 #endif // MAINWINDOW_H
