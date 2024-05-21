@@ -9,6 +9,8 @@ class ICommandStation : public QObject
 {
     Q_OBJECT
 public:
+    static constexpr int EMERGENCY_STOP = -1;
+
     explicit ICommandStation(QObject *parent = nullptr);
 
     virtual bool setLocomotiveSpeed(int address, int speedStep, LocomotiveDirection direction) = 0;
