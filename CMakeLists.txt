@@ -52,6 +52,11 @@ set(PROJECT_SOURCES
         chart/chartview.cpp
         chart/chart.h
         chart/chart.cpp
+
+        train/train.h
+        train/train.cpp
+        train/locostatuswidget.h
+        train/locostatuswidget.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -71,6 +76,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         chart/chart.h chart/chart.cpp
         commandstation/backends/endian.h
         commandstation/backends/z21messages.h
+        train/train.h train/train.cpp
+        train/locomotive.h train/locomotive.cpp
+        train/locomotivepool.h train/locomotivepool.cpp
+        train/locospeedmapping.h train/locospeedmapping.cpp
+        train/trainspeedtable.h train/trainspeedtable.cpp
+        train/locostatuswidget.h train/locostatuswidget.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
