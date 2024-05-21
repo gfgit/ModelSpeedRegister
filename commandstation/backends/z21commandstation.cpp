@@ -7,12 +7,29 @@
 
 #include "z21messages.h"
 
+#include <QDebug>
+
+#include <QTimer>
+
 Z21CommandStation::Z21CommandStation(QObject *parent)
     : ICommandStation{parent}
 {
     mSocket = new QUdpSocket(this);
-    mSocket->bind(QHostAddress::LocalHost, 21105);
+    mSocket->bind(QHostAddress("192.168.1.196"), 21105);
     connect(mSocket, &QUdpSocket::readyRead, this, &Z21CommandStation::readPendingDatagram);
+    QTimer *t = new QTimer(this);
+    connect(t, &QTimer::timeout, this, &Z21CommandStation::readPendingDatagram);
+    t->start(500);
+
+    QTimer *keepAlive = new QTimer(this);
+    connect(keepAlive, &QTimer::timeout, this,
+            [this]()
+            {
+                send(Z21::LanSetBroadcastFlags(Z21::BroadcastFlags::AllLocoChanges));
+            });
+    keepAlive->start(10000);
+
+    send(Z21::LanSetBroadcastFlags(Z21::BroadcastFlags::AllLocoChanges));
 }
 
 bool Z21CommandStation::setLocomotiveSpeed(int address, int speedStep, LocomotiveDirection direction)
@@ -67,6 +84,8 @@ void Z21CommandStation::readPendingDatagram()
             uint16_t msgSize = *reinterpret_cast<uint16_t *>(ptr);
             msgSize = qFromLittleEndian(msgSize);
 
+            //qDebug() << "Message???";
+
             if (msgSize > sz || !msgSize)
                 break;
 
@@ -96,6 +115,8 @@ void Z21CommandStation::readPendingDatagram()
 
 void Z21CommandStation::receive(const Z21::Message &message)
 {
+    //qDebug() << "RECEIVE";
+
     switch(message.header())
     {
     case Z21::LAN_X:
@@ -123,6 +144,9 @@ void Z21CommandStation::receive(const Z21::Message &message)
                 {
                     currentSpeedStep = float(currentSpeedStep) / float(reply.speedSteps()) * 126.0;
                 }
+
+                qDebug() << "LOCO_INFO:" << reply.address() << "Step:" << currentSpeedStep
+                         << "Dir:" << (direction == LocomotiveDirection::Forward ? 'F' : 'R');
 
                 emit locomotiveSpeedFeedback(reply.address(), currentSpeedStep, direction);
             }
