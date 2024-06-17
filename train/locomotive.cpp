@@ -2,6 +2,8 @@
 
 #include "locomotivepool.h"
 
+#include <QDebug>
+
 Locomotive::Locomotive(QObject *parent)
     : QObject{parent}
 {
@@ -52,6 +54,9 @@ void Locomotive::driveLoco(int speedStep, LocomotiveDirection direction)
     if(speedStep == mTargetSpeedStep && direction == mTargetDirection)
         return;
 
+    qDebug() << "DRIVE: adr=" << mAddress << "Dir=" << (direction == LocomotiveDirection::Forward ? 'F' : 'R')
+             << "Step=" << speedStep;
+
     if(mPool && mAddress != 0)
     {
         mTargetSpeedStep = speedStep;
@@ -60,11 +65,14 @@ void Locomotive::driveLoco(int speedStep, LocomotiveDirection direction)
     }
 }
 
-void Locomotive::setSpeed_internal(int speedStep, LocomotiveDirection dir)
+void Locomotive::setSpeed_internal(int speedStep, LocomotiveDirection dir, bool wasQueued)
 {
-    bool notify = false;
+    bool hasChanged = false;
     if(mSpeedStep != speedStep || mDirection != dir)
-        notify = true;
+        hasChanged = true;
+
+    qDebug() << "RECV: adr=" << mAddress << "Dir=" << (dir == LocomotiveDirection::Forward ? 'F' : 'R')
+             << "Step=" << speedStep << "Changed=" << hasChanged << "Queued=" << wasQueued;
 
     mSpeedStep = speedStep;
     mDirection = dir;
@@ -72,8 +80,8 @@ void Locomotive::setSpeed_internal(int speedStep, LocomotiveDirection dir)
     mTargetSpeedStep = mSpeedStep;
     mTargetDirection = mDirection;
 
-    if(notify)
-        emit changed(this);
+    if(hasChanged)
+        emit changed(this, wasQueued);
 }
 
 LocomotiveDirection Locomotive::targetDirection() const

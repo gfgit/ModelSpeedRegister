@@ -52,13 +52,13 @@ void LocomotivePool::setCommandStation(ICommandStation *newCommandStation)
         connect(mCommandStation, &ICommandStation::locomotiveSpeedFeedback, this, &LocomotivePool::onLocomotiveSpeedFeedback);
 }
 
-void LocomotivePool::onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction)
+void LocomotivePool::onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction, bool wasQueued)
 {
     for(Locomotive* loco : mLocos)
     {
         if(loco->address() == address)
         {
-            loco->setSpeed_internal(speedStep, direction);
+            loco->setSpeed_internal(speedStep, direction, wasQueued);
             break;
         }
     }

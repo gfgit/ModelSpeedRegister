@@ -23,7 +23,7 @@ public:
     void setCommandStation(ICommandStation *newCommandStation);
 
 private slots:
-    void onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction);
+    void onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction, bool wasQueued);
 
 private:
     friend class Locomotive;

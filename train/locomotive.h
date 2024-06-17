@@ -34,12 +34,12 @@ public:
     LocomotiveDirection targetDirection() const;
 
 signals:
-    void changed(Locomotive *self);
+    void changed(Locomotive *self, bool queued);
 
 private:
     friend class LocomotivePool;
 
-    void setSpeed_internal(int speedStep, LocomotiveDirection dir);
+    void setSpeed_internal(int speedStep, LocomotiveDirection dir, bool wasQueued);
 
 private:
     LocomotivePool *mPool = nullptr;
