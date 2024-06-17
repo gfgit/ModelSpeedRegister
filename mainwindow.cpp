@@ -314,11 +314,15 @@ MainWindow::MainWindow(QWidget *parent)
     LocoStatusWidget *status1 = new LocoStatusWidget;
     LocoStatusWidget *status2 = new LocoStatusWidget;
     QCheckBox *trainActiveCheck = new QCheckBox(tr("Train Active"));
+    QCheckBox *locoAInvertCheck = new QCheckBox(tr("Invert Loco A"));
+    QCheckBox *locoBInvertCheck = new QCheckBox(tr("Invert Loco B"));
 
     QHBoxLayout *monitorLay = new QHBoxLayout(monitorPage);
     monitorLay->addWidget(status1);
     monitorLay->addWidget(status2);
     monitorLay->addWidget(trainActiveCheck);
+    monitorLay->addWidget(locoAInvertCheck);
+    monitorLay->addWidget(locoBInvertCheck);
     mTabWidget->addTab(monitorPage, tr("Monitor"));
 
 
@@ -381,6 +385,8 @@ MainWindow::MainWindow(QWidget *parent)
     train->setParent(this);
 
     connect(trainActiveCheck, &QCheckBox::toggled, train, &Train::setActive);
+    connect(locoAInvertCheck, &QCheckBox::toggled, train, &Train::setLocoAInvert);
+    connect(locoBInvertCheck, &QCheckBox::toggled, train, &Train::setLocoBInvert);
 }
 
 MainWindow::~MainWindow()
