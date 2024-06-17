@@ -3,6 +3,8 @@
 
 #include "../icommandstation.h"
 
+#include <QElapsedTimer>
+
 class QUdpSocket;
 
 namespace Z21 {
@@ -19,6 +21,8 @@ public:
 
     virtual bool emergencyStop(int address) override;
 
+    void requestLocoInfo(int address, int oldStep, LocomotiveDirection oldDir);
+
 private slots:
     void readPendingDatagram();
 
@@ -29,6 +33,16 @@ private:
 private:
     QUdpSocket *mSocket;
     bool socketReadScheduled = false;
+
+    struct ReplyQueueItem
+    {
+        int address;
+        int speedStep;
+        LocomotiveDirection direction;
+        QElapsedTimer elapsed;
+    };
+
+    QVector<ReplyQueueItem> replyQueue;
 };
 
 #endif // Z21COMMANDSTATION_H

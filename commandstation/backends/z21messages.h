@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cassert>
+#include <cstring>
 #include "endian.h"
 
 #ifdef _MSC_VER
@@ -304,7 +305,7 @@ constexpr uint8_t fromBCD(uint8_t value)
 
 PRAGMA_PACK_PUSH_1
 
-    struct Message
+struct Message
 {
     uint16_t dataLenLE; //!< DataLen (little endian): Total length over the entire data set including DataLen, Header and Data, i.e. DataLen = 2+2+n.
     Header headerLE;  //!< Header (little endian): Describes the Command and the Protocol’s group. \see Header
@@ -369,8 +370,41 @@ static_assert(sizeof(LanSetBroadcastFlags) == 8);
 
 PRAGMA_PACK_POP
 
-    // LAN_X_SET_LOCO_DRIVE
-    struct LanXSetLocoDrive : LanX
+// LAN_X_GET_LOCO_INFO
+struct LanXGetLocoInfo : LanX
+{
+    uint8_t db0 = 0xF0;
+    uint8_t addressHigh;
+    uint8_t addressLow;
+    uint8_t checksum;
+
+    LanXGetLocoInfo(uint16_t address, bool longAddress) :
+        LanX(sizeof(LanXGetLocoInfo), LAN_X_GET_LOCO_INFO)
+    {
+        setAddress(address, longAddress);
+        updateChecksum();
+    }
+
+    inline uint16_t address() const
+    {
+        return (static_cast<uint16_t>(addressHigh & 0x3F) << 8) | addressLow;
+    }
+
+    inline bool isLongAddress() const
+    {
+        return (addressHigh & 0xC0) == 0xC0;
+    }
+
+    inline void setAddress(uint16_t address, bool longAddress)
+    {
+        addressHigh = longAddress ? (0xC0 | (address >> 8)) : 0x00;
+        addressLow = longAddress ? address & 0xFF : address & 0x7F;
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXGetLocoInfo) == 9);
+
+// LAN_X_SET_LOCO_DRIVE
+struct LanXSetLocoDrive : LanX
 {
     uint8_t db0;
     uint8_t addressHigh;
@@ -680,7 +714,7 @@ struct LanXLocoInfo : LanX
     }
 } ATTRIBUTE_PACKED;
 static_assert(sizeof(LanXLocoInfo) >= LanXLocoInfo::minMessageSize &&
-              sizeof(LanXLocoInfo) <= LanXLocoInfo::maxMessageSize);
+sizeof(LanXLocoInfo) <= LanXLocoInfo::maxMessageSize);
 
 // LAN_X_SET_STOP
 struct LanXSetStop : LanX
@@ -693,6 +727,107 @@ struct LanXSetStop : LanX
     }
 } ATTRIBUTE_PACKED;
 static_assert(sizeof(LanXSetStop) == 6);
+
+
+// LAN_X_SET_TRACK_POWER_OFF
+struct LanXSetTrackPowerOff : LanX
+{
+    uint8_t db0 = LAN_X_SET_TRACK_POWER_OFF;
+    uint8_t checksum = 0xa1;
+
+    LanXSetTrackPowerOff() :
+        LanX(sizeof(LanXSetTrackPowerOff), 0x21)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXSetTrackPowerOff) == 7);
+
+// LAN_X_SET_TRACK_POWER_ON
+struct LanXSetTrackPowerOn : LanX
+{
+    uint8_t db0 = LAN_X_SET_TRACK_POWER_OFF;
+    uint8_t checksum = 0xa0;
+
+    LanXSetTrackPowerOn() :
+        LanX(sizeof(LanXSetTrackPowerOn), 0x21)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXSetTrackPowerOn) == 7);
+
+// LAN_X_BC_STOPPED
+struct LanXBCStopped : LanX
+{
+    uint8_t db0 = 0x00;
+    uint8_t checksum = 0x81;
+
+    LanXBCStopped() :
+        LanX(sizeof(LanXBCStopped), LAN_X_BC_STOPPED)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXBCStopped) == 7);
+
+// LAN_X_BC_TRACK_POWER_OFF
+struct LanXBCTrackPowerOff : LanX
+{
+    uint8_t db0 = LAN_X_BC_TRACK_POWER_OFF;
+    uint8_t checksum = 0x61;
+
+    LanXBCTrackPowerOff() :
+        LanX(sizeof(LanXBCTrackPowerOff), LAN_X_BC)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXBCTrackPowerOff) == 7);
+
+// LAN_X_BC_TRACK_POWER_ON
+struct LanXBCTrackPowerOn : LanX
+{
+    uint8_t db0 = LAN_X_BC_TRACK_POWER_ON;
+    uint8_t checksum = 0x60;
+
+    LanXBCTrackPowerOn() :
+        LanX(sizeof(LanXBCTrackPowerOn), LAN_X_BC)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXBCTrackPowerOn) == 7);
+
+// LAN_X_BC_PROGRAMMING_MODE
+
+// LAN_X_BC_TRACK_SHORT_CIRCUIT
+struct LanXBCTrackShortCircuit : LanX
+{
+    uint8_t db0 = LAN_X_BC_TRACK_SHORT_CIRCUIT;
+    uint8_t checksum = 0x69;
+
+    LanXBCTrackShortCircuit() :
+        LanX(sizeof(LanXBCTrackShortCircuit), LAN_X_BC)
+    {
+    }
+} ATTRIBUTE_PACKED;
+static_assert(sizeof(LanXBCTrackShortCircuit) == 7);
+
+inline bool operator ==(const Z21::Message& lhs, const Z21::Message& rhs)
+{
+    return lhs.dataLen() == rhs.dataLen() && std::memcmp(&lhs, &rhs, lhs.dataLen()) == 0;
+}
+
+constexpr Z21::BroadcastFlags operator |(Z21::BroadcastFlags lhs, Z21::BroadcastFlags rhs)
+{
+    return static_cast<Z21::BroadcastFlags>(
+                static_cast<std::underlying_type_t<Z21::BroadcastFlags>>(lhs) |
+                static_cast<std::underlying_type_t<Z21::BroadcastFlags>>(rhs));
+}
+
+constexpr Z21::BroadcastFlags operator &(Z21::BroadcastFlags lhs, Z21::BroadcastFlags rhs)
+{
+    return static_cast<Z21::BroadcastFlags>(
+                static_cast<std::underlying_type_t<Z21::BroadcastFlags>>(lhs) &
+                static_cast<std::underlying_type_t<Z21::BroadcastFlags>>(rhs));
+}
+
 
 void LanX::updateChecksum(uint8_t len)
 {

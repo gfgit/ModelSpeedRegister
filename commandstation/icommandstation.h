@@ -18,7 +18,7 @@ public:
     virtual bool emergencyStop(int address) = 0;
 
 signals:
-    void locomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction);
+    void locomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction, bool wasQueued);
 };
 
 #endif // ICOMMANDSTATION_H

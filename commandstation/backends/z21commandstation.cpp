@@ -24,16 +24,33 @@ Z21CommandStation::Z21CommandStation(QObject *parent)
     QTimer *keepAlive = new QTimer(this);
     connect(keepAlive, &QTimer::timeout, this,
             [this]()
-            {
-                send(Z21::LanSetBroadcastFlags(Z21::BroadcastFlags::AllLocoChanges));
-            });
+    {
+        send(Z21::LanSetBroadcastFlags(Z21::BroadcastFlags::AllLocoChanges));
+    });
     keepAlive->start(10000);
 
     send(Z21::LanSetBroadcastFlags(Z21::BroadcastFlags::AllLocoChanges));
+
+    QTimer *locoInfo = new QTimer(this);
+    connect(locoInfo, &QTimer::timeout, this,
+            [this]()
+    {
+        requestLocoInfo(46, 0, LocomotiveDirection::Forward);
+        requestLocoInfo(47, 0, LocomotiveDirection::Forward);
+    });
+    //locoInfo->start(1000);
 }
 
 bool Z21CommandStation::setLocomotiveSpeed(int address, int speedStep, LocomotiveDirection direction)
 {
+    ReplyQueueItem item;
+    item.address = address;
+    item.speedStep = speedStep;
+    item.direction = direction;
+    item.elapsed.start();
+    replyQueue.append(item);
+
+
     Z21::LanXSetLocoDrive message;
     message.setAddress(address, false);
 
@@ -104,18 +121,28 @@ void Z21CommandStation::readPendingDatagram()
         socketReadScheduled = true;
         // Manually schedule next read
         QMetaObject::invokeMethod(
-            this,
-            [this]() {
-                socketReadScheduled = false;
-                readPendingDatagram();
-            },
-            Qt::QueuedConnection);
+                    this,
+                    [this]() {
+            socketReadScheduled = false;
+            readPendingDatagram();
+        },
+        Qt::QueuedConnection);
     }
 }
 
 void Z21CommandStation::receive(const Z21::Message &message)
 {
     //qDebug() << "RECEIVE";
+
+    // Clear old reply queue items
+    auto it = replyQueue.begin();
+    while(it != replyQueue.end())
+    {
+        if(it->elapsed.elapsed() > 500)
+            it = replyQueue.erase(it);
+        else
+            it++;
+    }
 
     switch(message.header())
     {
@@ -142,13 +169,37 @@ void Z21CommandStation::receive(const Z21::Message &message)
                 int currentSpeedStep = reply.speedStep();
                 if(reply.speedSteps() != 126)
                 {
+                    qDebug() << "WRONG SPEED STEP:" << reply.speedSteps();
                     currentSpeedStep = float(currentSpeedStep) / float(reply.speedSteps()) * 126.0;
                 }
 
-                qDebug() << "LOCO_INFO:" << reply.address() << "Step:" << currentSpeedStep
-                         << "Dir:" << (direction == LocomotiveDirection::Forward ? 'F' : 'R');
+                auto queued = replyQueue.end();
+                for(auto it = replyQueue.begin(); it != replyQueue.end(); it++)
+                {
+                    if(it->address != reply.address())
+                        continue;
 
-                emit locomotiveSpeedFeedback(reply.address(), currentSpeedStep, direction);
+                    if(it->direction != direction)
+                        continue;
+
+                    if(it->speedStep != currentSpeedStep)
+                        continue;
+
+                    queued = it;
+                    break;
+                }
+
+                bool wasQueued = (queued != replyQueue.end());
+
+                if(wasQueued)
+                    replyQueue.erase(queued);
+
+                qDebug() << "LOCO_INFO:" << reply.address()
+                         << "Dir:" << (direction == LocomotiveDirection::Forward ? 'F' : 'R')
+                         << "Step:" << currentSpeedStep
+                         << "Queued:" << wasQueued;
+
+                emit locomotiveSpeedFeedback(reply.address(), currentSpeedStep, direction, wasQueued);
             }
             break;
         }
@@ -167,4 +218,17 @@ void Z21CommandStation::send(const Z21::Message &message)
     mSocket->writeDatagram(reinterpret_cast<const char*>(&message),
                            message.dataLen(),
                            QHostAddress::Broadcast, 21105);
+}
+
+void Z21CommandStation::requestLocoInfo(int address, int oldStep, LocomotiveDirection oldDir)
+{
+    ReplyQueueItem item;
+    item.address = address;
+    item.speedStep = oldStep;
+    item.direction = oldDir;
+    item.elapsed.start();
+    //replyQueue.append(item);
+
+    Z21::LanXGetLocoInfo message(address, false);
+    send(message);
 }
