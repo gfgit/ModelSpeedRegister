@@ -22,7 +22,7 @@ void DummySpeedSensor::timerEvent(QTimerEvent *e)
         const double MAX_OSCILLATION = 4.0;
         double noise = QRandomGenerator::global()->bounded(MAX_OSCILLATION) - MAX_OSCILLATION / 2;
         currentSpeed += noise;
-        emit speedReading(currentSpeed, LocomotiveDirection::Forward, mElapsedTimer.elapsed());
+        emit speedReading(currentSpeed, 0, mElapsedTimer.elapsed());
         return;
     }
 

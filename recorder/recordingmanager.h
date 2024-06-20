@@ -27,13 +27,16 @@ public:
 
     void timerEvent(QTimerEvent *e) override;
 
+    int getLocomotiveDCCAddress() const;
+    void setLocomotiveDCCAddress(int newLocomotiveDCCAddress);
+
 public slots:
     void start();
     void stop();
     void emergencyStop();
 
 private slots:
-    void onNewSpeedReading(double metersPerSecond, LocomotiveDirection direction, qint64 timestampMilliSec);
+    void onNewSpeedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec);
     void onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction);
 
 private:
@@ -47,6 +50,7 @@ private:
     LocomotiveRecording *m_currentRecording;
 
     int mTimerId = 0;
+    qint64 mStartTimestamp = -1;
 };
 
 #endif // RECORDINGMANAGER_H

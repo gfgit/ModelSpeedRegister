@@ -17,19 +17,25 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
     mChart->setLocalizeNumbers(false);
 
     mAxisX = new QValueAxis(this);
-    mAxisX->setRange(0, 10);
+    mAxisX->setRange(0, 20);
     mAxisX->setLabelFormat("%.0f");
     mAxisX->setTitleText("Time (sec)");
     mAxisX->setTickType(QValueAxis::TicksDynamic);
     mAxisX->setTickInterval(1);
 
-    mAxisY = new QValueAxis(this);
-    mAxisY->setRange(0, 50);
-    mAxisX->setLabelFormat("%f");
-    mAxisY->setTitleText("Speed");
+    mSpeedAxisY = new QValueAxis(this);
+    mSpeedAxisY->setRange(0, 1.5);
+    mSpeedAxisY->setLabelFormat("%.1f");
+    mSpeedAxisY->setTitleText("Speed (m/s)");
+
+    mStepAxisY = new QValueAxis(this);
+    mStepAxisY->setRange(0, 127);
+    mStepAxisY->setLabelFormat("%.0f");
+    mStepAxisY->setTitleText("Step");
 
     mChart->addAxis(mAxisX, Qt::AlignBottom);
-    mChart->addAxis(mAxisY, Qt::AlignLeft);
+    mChart->addAxis(mSpeedAxisY, Qt::AlignLeft);
+    mChart->addAxis(mStepAxisY, Qt::AlignRight);
 
     QVBoxLayout *lay = new QVBoxLayout(this);
     mChartView = new ChartView(mChart);
@@ -38,29 +44,29 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
     mChart->addSeries(&mSpeedSeries);
     mSpeedSeries.setColor(Qt::red);
     mSpeedSeries.attachAxis(mAxisX);
-    mSpeedSeries.attachAxis(mAxisY);
+    mSpeedSeries.attachAxis(mSpeedAxisY);
 
     mChart->addSeries(&mSpeedAVGSeries);
     mSpeedAVGSeries.setColor(Qt::blue);
     mSpeedAVGSeries.attachAxis(mAxisX);
-    mSpeedAVGSeries.attachAxis(mAxisY);
+    mSpeedAVGSeries.attachAxis(mSpeedAxisY);
 
     mChart->addSeries(&mReqStepSeries);
     mReqStepSeries.setColor(Qt::cyan);
     mReqStepSeries.attachAxis(mAxisX);
-    mReqStepSeries.attachAxis(mAxisY);
+    mReqStepSeries.attachAxis(mStepAxisY);
 
     mChart->addSeries(&mActualStepSeries);
     mActualStepSeries.setColor(Qt::black);
     mActualStepSeries.attachAxis(mAxisX);
-    mActualStepSeries.attachAxis(mAxisY);
+    mActualStepSeries.attachAxis(mStepAxisY);
 
     connect(mChartView, &ChartView::scrollResetRequested, this,
             [this]()
             {
                 // Reset origin to {0,0}
                 mAxisX->setRange(0, mAxisX->max() - mAxisX->min());
-                mAxisY->setRange(0, mAxisY->max() - mAxisY->min());
+                mSpeedAxisY->setRange(0, mSpeedAxisY->max() - mSpeedAxisY->min());
             });
 }
 
@@ -111,14 +117,14 @@ void LocomotiveRecordingView::onItemChanged(int index)
     if(mSpeedSeries.count() <= index)
     {
 
-        qDebug() << "UPDATE time:" << item.timestampMilliSec;
+        //qDebug() << "UPDATE time:" << item.timestampMilliSec;
 
         qint64 lastX = 0;
         if(mSpeedSeries.count())
             lastX = mSpeedSeries.at(mSpeedSeries.count() - 1).x();
 
-        if(mAxisX->max() < lastX)
-            mAxisX->setMax(lastX + 5);
+        if(mAxisX->max() < lastX + 5)
+            mAxisX->setMax(lastX + 10);
 
         for(int i = mSpeedSeries.count(); i <= index; i++)
         {
@@ -131,8 +137,8 @@ void LocomotiveRecordingView::onItemChanged(int index)
         }
     }
 
-    if(item.metersPerSecond > mAxisY->max())
-        mAxisY->setMax(item.metersPerSecond + 10);
+    if(item.metersPerSecond > mSpeedAxisY->max())
+        mSpeedAxisY->setMax(item.metersPerSecond + 0.5);
 
     const qreal newX = qreal(item.timestampMilliSec) / 1000.0;
 

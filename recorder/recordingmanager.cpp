@@ -18,10 +18,20 @@ RecordingManager::~RecordingManager()
     stop();
 }
 
-void RecordingManager::onNewSpeedReading(double metersPerSecond, LocomotiveDirection direction, qint64 timestampMilliSec)
+void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec)
 {
     if(!m_currentRecording)
         return;
+
+    if(mStartTimestamp == -1)
+    {
+        // Reset time reference
+        mStartTimestamp = timestampMilliSec;
+    }
+
+    timestampMilliSec -= mStartTimestamp;
+
+    qDebug() << "READ:" << timestampMilliSec << metersPerSecond << travelledMillimeters;
 
     RecordingItem item;
     item.timestampMilliSec = timestampMilliSec;
@@ -42,6 +52,16 @@ void RecordingManager::onLocomotiveSpeedFeedback(int address, int speedStep, Loc
 
     actualDCCStep = speedStep;
     //TODO: direction
+}
+
+int RecordingManager::getLocomotiveDCCAddress() const
+{
+    return locomotiveDCCAddress;
+}
+
+void RecordingManager::setLocomotiveDCCAddress(int newLocomotiveDCCAddress)
+{
+    locomotiveDCCAddress = newLocomotiveDCCAddress;
 }
 
 LocomotiveRecording *RecordingManager::currentRecording() const
@@ -78,7 +98,8 @@ void RecordingManager::start()
 
     m_currentRecording->clear();
 
-    mTimerId = startTimer(1500);
+    mTimerId = startTimer(10000);
+    mStartTimestamp = -1;
 }
 
 void RecordingManager::stop()

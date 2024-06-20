@@ -34,7 +34,8 @@ private:
     QLineSeries mActualStepSeries;
 
     QValueAxis *mAxisX;
-    QValueAxis *mAxisY;
+    QValueAxis *mSpeedAxisY;
+    QValueAxis *mStepAxisY;
 };
 
 #endif // LOCOMOTIVERECORDINGVIEW_H

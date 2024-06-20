@@ -15,14 +15,14 @@ LocoSpeedCurveView::LocoSpeedCurveView(QWidget *parent)
     mChart->setLocalizeNumbers(false);
 
     mAxisX = new QValueAxis(this);
-    mAxisX->setRange(0, 128);
-    mAxisX->setLabelFormat("%d");
+    mAxisX->setRange(0, 126);
+    mAxisX->setLabelFormat("%.0f");
     mAxisX->setTitleText("Step");
 
     mAxisY = new QValueAxis(this);
-    mAxisY->setRange(0, 100);
+    mAxisY->setRange(0, 2);
+    mAxisY->setLabelFormat("%.1f");
     mAxisY->setTitleText("Speed");
-    mAxisX->setLabelFormat("%f");
 
     mChart->addAxis(mAxisX, Qt::AlignBottom);
     mChart->addAxis(mAxisY, Qt::AlignLeft);

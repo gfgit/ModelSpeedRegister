@@ -12,7 +12,7 @@ public:
     explicit ISpeedSensor(QObject *parent = nullptr);
 
 signals:
-    void speedReading(double metersPerSecond, LocomotiveDirection direction, qint64 timestampMilliSec);
+    void speedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec);
 };
 
 #endif // ISPEEDSENSOR_H
