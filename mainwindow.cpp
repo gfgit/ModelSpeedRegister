@@ -7,14 +7,18 @@
 #include "recorder/locospeedcurve.h"
 #include "view/locospeedcurveview.h"
 
-#include "input/dummyspeedsensor.h"
-#include "commandstation/dummycommandstation.h"
+//#include "input/dummyspeedsensor.h"
+//#include "commandstation/dummycommandstation.h"
+#include "input/espanaloghallsensor.h"
 #include "commandstation/backends/z21commandstation.h"
+
+#include "input/espanaloghallconfigwidget.h"
 
 #include <QHBoxLayout>
 
 #include <QTabWidget>
 #include <QCheckBox>
+#include <QSpinBox>
 
 #include "train/locostatuswidget.h"
 #include "train/locomotive.h"
@@ -289,7 +293,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    mSpeedSensor = new DummySpeedSensor(this);
+    mSpeedSensor = new ESPAnalogHallSensor(this);
     //mCommandStation = new DummyCommandStation;
     mCommandStation = new Z21CommandStation(this);
 
@@ -305,9 +309,18 @@ MainWindow::MainWindow(QWidget *parent)
     recordingPage->grabGesture(Qt::PanGesture);
     recordingPage->grabGesture(Qt::PinchGesture);
 
-    QHBoxLayout *recLay = new QHBoxLayout(recordingPage);
+    QVBoxLayout *recBigLay = new QVBoxLayout(recordingPage);
+
+    QHBoxLayout *recLay = new QHBoxLayout;
+    recBigLay->addLayout(recLay);
     recLay->addWidget(mRecView);
     recLay->addWidget(mSpeedCurveView);
+
+    QSpinBox *addressSpin = new QSpinBox;
+    addressSpin->setRange(0, 9999);
+    recBigLay->addWidget(addressSpin);
+
+
     mTabWidget->addTab(recordingPage, tr("Recording"));
 
     QWidget *monitorPage = new QWidget;
@@ -325,17 +338,21 @@ MainWindow::MainWindow(QWidget *parent)
     monitorLay->addWidget(locoBInvertCheck);
     mTabWidget->addTab(monitorPage, tr("Monitor"));
 
+    ESPAnalogHallConfigWidget *mConfig = new ESPAnalogHallConfigWidget;
+    mConfig->setSensor(mSpeedSensor);
+    mTabWidget->addTab(mConfig, tr("ESP Sensor"));
+
 
 
     mRecManager = new RecordingManager(this);
     mSpeedCurve = new LocoSpeedCurve(this);
     mSpeedCurve->setRecording(mRecManager->currentRecording());
 
-    connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
-            [sensor = mSpeedSensor](int /*address*/, int speedStep)
-            {
-                sensor->simulateSpeedStep(speedStep);
-            });
+//    connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
+//            [sensor = mSpeedSensor](int /*address*/, int speedStep)
+//            {
+//                sensor->simulateSpeedStep(speedStep);
+//            });
 
     mRecManager->setCommandStation(mCommandStation);
     mRecManager->setSpeedSensor(mSpeedSensor);
@@ -344,17 +361,18 @@ MainWindow::MainWindow(QWidget *parent)
     mSpeedCurveView->setSpeedCurve(mSpeedCurve);
 
     connect(ui->actionStart, &QAction::triggered, this,
-            [this]()
+            [this, addressSpin]()
             {
-                mSpeedSensor->start();
+                mRecManager->setLocomotiveDCCAddress(addressSpin->value());
+                mSpeedSensor->resetTravelledCount();
                 mRecManager->start();
-                mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
+                //mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
             });
 
     connect(ui->actionStop, &QAction::triggered, this,
             [this]()
             {
-                mSpeedSensor->stop();
+                //mSpeedSensor->stop();
                 mRecManager->stop();
             });
 
@@ -362,7 +380,7 @@ MainWindow::MainWindow(QWidget *parent)
             [this]()
             {
                 mRecManager->emergencyStop();
-                mSpeedSensor->stop();
+                //mSpeedSensor->stop();
             });
 
     LocomotivePool *mPool = new LocomotivePool(this);

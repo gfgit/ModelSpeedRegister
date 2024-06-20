@@ -13,7 +13,7 @@ class LocomotiveRecordingView;
 class LocoSpeedCurve;
 class LocoSpeedCurveView;
 
-class DummySpeedSensor;
+class ESPAnalogHallSensor;
 class ICommandStation;
 
 class QTabWidget;
@@ -35,7 +35,7 @@ private:
     LocoSpeedCurve *mSpeedCurve;
     LocoSpeedCurveView *mSpeedCurveView;
 
-    DummySpeedSensor *mSpeedSensor;
+    ESPAnalogHallSensor *mSpeedSensor;
     ICommandStation *mCommandStation;
 
     QTabWidget *mTabWidget;
