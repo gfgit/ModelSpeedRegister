@@ -84,6 +84,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         train/locostatuswidget.h train/locostatuswidget.cpp
         input/espanaloghallsensor.h input/espanaloghallsensor.cpp
         input/espanaloghallconfigwidget.h input/espanaloghallconfigwidget.cpp
+        recorder/locoinfo.h recorder/locoinfo.cpp
+        recorder/idataseries.h recorder/idataseries.cpp
+        recorder/series/requestedspeedstepseries.h recorder/series/requestedspeedstepseries.cpp
+        recorder/series/receivedspeedstepseries.cpp
+        recorder/series/receivedspeedstepseries.h
+        recorder/series/movingaverageseries.h recorder/series/movingaverageseries.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
