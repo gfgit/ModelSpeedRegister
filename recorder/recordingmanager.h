@@ -2,11 +2,16 @@
 #define RECORDINGMANAGER_H
 
 #include <QObject>
+#include <QElapsedTimer>
 
 #include "../commandstation/utils.h"
 
 class ICommandStation;
 class ISpeedSensor;
+
+class IDataSeries;
+class RequestedSpeedStepSeries;
+class ReceivedSpeedStepSeries;
 
 class LocomotiveRecording;
 
@@ -30,6 +35,19 @@ public:
     int getLocomotiveDCCAddress() const;
     void setLocomotiveDCCAddress(int newLocomotiveDCCAddress);
 
+    QVector<IDataSeries *> getSeries() const;
+
+    void registerSeries(IDataSeries *s);
+    void unregisterSeries(IDataSeries *s);
+
+    RequestedSpeedStepSeries *reqStepSeries() const;
+
+    ReceivedSpeedStepSeries *recvStepSeries() const;
+
+signals:
+    void seriesRegistered(IDataSeries *s);
+    void seriesUnregistered(IDataSeries *s);
+
 public slots:
     void start();
     void stop();
@@ -38,6 +56,8 @@ public slots:
 private slots:
     void onNewSpeedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec);
     void onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction);
+
+    void onSeriesDestroyed(QObject *s);
 
 private:
     ICommandStation *mCommandStation = nullptr;
@@ -51,6 +71,13 @@ private:
 
     int mTimerId = 0;
     qint64 mStartTimestamp = -1;
+
+    QVector<IDataSeries *> mSeries;
+
+    RequestedSpeedStepSeries *mReqStepSeries;
+    ReceivedSpeedStepSeries *mRecvStepSeries;
+
+    QElapsedTimer mElapsed;
 };
 
 #endif // RECORDINGMANAGER_H
