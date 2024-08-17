@@ -45,7 +45,7 @@ void RequestedSpeedStepSeries::clear()
 {
     int oldSize = mPoints.size();
     mPoints.clear();
-    for(int i = 0; i < oldSize; i++)
+    for(int i = oldSize - 1; i >= 0; i--)
     {
         emit pointRemoved(i);
     }

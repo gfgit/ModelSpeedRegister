@@ -1,29 +1,29 @@
-#include "receivedspeedstepseries.h"
+#include "rawsensordataseries.h"
 
-ReceivedSpeedStepSeries::ReceivedSpeedStepSeries(QObject *parent)
+RawSensorDataSeries::RawSensorDataSeries(QObject *parent)
     : IDataSeries{parent}
 {
     setName(tr("Requested DCC Step"));
 }
 
-DataSeriesType ReceivedSpeedStepSeries::getType() const
+DataSeriesType RawSensorDataSeries::getType() const
 {
-    return DataSeriesType::ReceivedSpeedStep;
+    return DataSeriesType::SensorRawData;
 }
 
-int ReceivedSpeedStepSeries::getPointCount() const
+int RawSensorDataSeries::getPointCount() const
 {
     return mPoints.count();
 }
 
-QPointF ReceivedSpeedStepSeries::getPointAt(int index) const
+QPointF RawSensorDataSeries::getPointAt(int index) const
 {
     if(index < 0 || index >= mPoints.count())
         return QPointF();
     return mPoints.at(index);
 }
 
-QString ReceivedSpeedStepSeries::getPointTooltip(int index) const
+QString RawSensorDataSeries::getPointTooltip(int index) const
 {
     if(index < 0 || index >= mPoints.count())
         return QString();
@@ -34,14 +34,14 @@ QString ReceivedSpeedStepSeries::getPointTooltip(int index) const
               "Time: %2 s").arg(point.y()).arg(point.x());
 }
 
-void ReceivedSpeedStepSeries::addPoint(int reqStep, double seconds)
+void RawSensorDataSeries::addPoint(double speed, double seconds)
 {
-    QPointF point(seconds, reqStep);
+    QPointF point(seconds, speed);
     mPoints.append(point);
     emit pointAdded(mPoints.size() - 1, point);
 }
 
-void ReceivedSpeedStepSeries::clear()
+void RawSensorDataSeries::clear()
 {
     int oldSize = mPoints.size();
     mPoints.clear();
@@ -50,3 +50,4 @@ void ReceivedSpeedStepSeries::clear()
         emit pointRemoved(i);
     }
 }
+
