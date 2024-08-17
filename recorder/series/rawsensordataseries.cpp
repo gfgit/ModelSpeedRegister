@@ -3,7 +3,7 @@
 RawSensorDataSeries::RawSensorDataSeries(QObject *parent)
     : IDataSeries{parent}
 {
-    setName(tr("Requested DCC Step"));
+    setName(tr("Raw Sensor Read"));
 }
 
 DataSeriesType RawSensorDataSeries::getType() const

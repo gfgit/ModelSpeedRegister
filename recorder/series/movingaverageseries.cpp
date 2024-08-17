@@ -30,7 +30,8 @@ void MovingAverageSeries::onSourceDestroyed()
 {
     mSource = nullptr;
 
-    for(int i = 0; i < mPoints.size(); i++)
+    int oldSize = mPoints.size();
+    for(int i = oldSize - 1; i >= 0; i--)
     {
         emit pointRemoved(i);
     }
@@ -115,7 +116,8 @@ void MovingAverageSeries::setSource(IDataSeries *newSource)
         disconnect(mSource, &QObject::destroyed, this, &MovingAverageSeries::onSourceDestroyed);
 
         // Clear previous average
-        for(int i = 0; i < mPoints.size(); i++)
+        int oldSize = mPoints.size();
+        for(int i = oldSize - 1; i >= 0; i--)
         {
             emit pointRemoved(i);
         }

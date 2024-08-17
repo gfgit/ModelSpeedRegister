@@ -3,7 +3,7 @@
 ReceivedSpeedStepSeries::ReceivedSpeedStepSeries(QObject *parent)
     : IDataSeries{parent}
 {
-    setName(tr("Requested DCC Step"));
+    setName(tr("Received DCC Step"));
 }
 
 DataSeriesType ReceivedSpeedStepSeries::getType() const
