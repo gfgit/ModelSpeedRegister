@@ -2,13 +2,16 @@
 #define LOCOMOTIVERECORDINGVIEW_H
 
 #include <QWidget>
-#include <QLineSeries>
 
 class Chart;
 class ChartView;
-class QValueAxis;
 
-class LocomotiveRecording;
+class DataSeriesFilterModel;
+class RecordingManager;
+
+class QTableView;
+
+class QSplitter;
 
 class LocomotiveRecordingView : public QWidget
 {
@@ -16,26 +19,19 @@ class LocomotiveRecordingView : public QWidget
 public:
     explicit LocomotiveRecordingView(QWidget *parent = nullptr);
 
-    LocomotiveRecording *recording() const;
-    void setRecording(LocomotiveRecording *newRecording);
-
-private slots:
-    void onItemChanged(int index);
+    RecordingManager *recMgr() const;
+    void setRecMgr(RecordingManager *newRecMgr);
 
 private:
-    LocomotiveRecording *mRecording = nullptr;
+    RecordingManager *mRecMgr = nullptr;
 
     Chart *mChart;
     ChartView *mChartView;
 
-    QLineSeries mSpeedSeries;
-    QLineSeries mSpeedAVGSeries;
-    QLineSeries mReqStepSeries;
-    QLineSeries mActualStepSeries;
+    QTableView *mFilterView;
+    DataSeriesFilterModel *mFilterModel;
 
-    QValueAxis *mAxisX;
-    QValueAxis *mSpeedAxisY;
-    QValueAxis *mStepAxisY;
+    QSplitter *mSplitter;
 };
 
 #endif // LOCOMOTIVERECORDINGVIEW_H

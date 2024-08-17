@@ -16,6 +16,16 @@ enum DataSeriesType
     TotalStepAverage
 };
 
+static const char* DataSeriesType_names[] =
+{
+    QT_TRANSLATE_NOOP("IDataSeries", "Unknown"),
+    QT_TRANSLATE_NOOP("IDataSeries", "RequestedSpeedStep"),
+    QT_TRANSLATE_NOOP("IDataSeries", "ReceivedSpeedStep"),
+    QT_TRANSLATE_NOOP("IDataSeries", "SensorRawData"),
+    QT_TRANSLATE_NOOP("IDataSeries", "MovingAverage"),
+    QT_TRANSLATE_NOOP("IDataSeries", "TotalStepAverage")
+};
+
 enum DataSeriesAction
 {
     PointAdded = 0,
@@ -38,6 +48,11 @@ public:
     virtual QString getPointTooltip(int index) const = 0;
 
     static QString defaultTooltip(const QString &seriesName, int index, const QPointF& point);
+
+    inline static QString trType(DataSeriesType t)
+    {
+        return tr(DataSeriesType_names[int(t)]);
+    }
 
 signals:
     void pointAdded(int index, const QPointF& point);

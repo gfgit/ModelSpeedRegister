@@ -8,6 +8,7 @@
 #include "idataseries.h"
 #include "series/requestedspeedstepseries.h"
 #include "series/receivedspeedstepseries.h"
+#include "series/rawsensordataseries.h"
 
 #include <QTimerEvent>
 
@@ -21,6 +22,9 @@ RecordingManager::RecordingManager(QObject *parent)
 
     mRecvStepSeries = new ReceivedSpeedStepSeries(this);
     registerSeries(mRecvStepSeries);
+
+    mRawSensorSeries = new RawSensorDataSeries(this);
+    registerSeries(mRawSensorSeries);
 }
 
 RecordingManager::~RecordingManager()
@@ -41,6 +45,8 @@ void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelle
 
     timestampMilliSec -= mStartTimestamp;
 
+    mRawSensorSeries->addPoint(metersPerSecond, timestampMilliSec / 1000.0);
+
     qDebug() << "READ:" << timestampMilliSec << metersPerSecond << travelledMillimeters;
 
     RecordingItem item;
@@ -60,9 +66,12 @@ void RecordingManager::onLocomotiveSpeedFeedback(int address, int speedStep, Loc
     if(address != locomotiveDCCAddress)
         return;
 
+    int oldRecvStep = actualDCCStep;
     actualDCCStep = speedStep;
 
-    mRecvStepSeries->addPoint(speedStep, mElapsed.elapsed() / 1000.0);
+    mRecvStepSeries->addPoint(oldRecvStep, mElapsed.elapsed() / 1000.0);
+    mRecvStepSeries->addPoint(actualDCCStep, mElapsed.elapsed() / 1000.0);
+
     //TODO: direction
 }
 
@@ -81,6 +90,32 @@ ReceivedSpeedStepSeries *RecordingManager::recvStepSeries() const
 RequestedSpeedStepSeries *RecordingManager::reqStepSeries() const
 {
     return mReqStepSeries;
+}
+
+RawSensorDataSeries *RecordingManager::rawSensorSeries() const
+{
+    return mRawSensorSeries;
+}
+
+void RecordingManager::requestStep(int step)
+{
+    int oldStep = requestedDCCStep;
+    requestedDCCStep = step;
+    if(requestedDCCStep > 126)
+    {
+        stop();
+        return;
+    }
+
+    if(mCommandStation)
+    {
+        mReqStepSeries->addPoint(oldStep, mElapsed.elapsed() / 1000.0);
+        mReqStepSeries->addPoint(requestedDCCStep, mElapsed.elapsed() / 1000.0);
+
+        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
+                                            requestedDCCStep,
+                                            LocomotiveDirection::Forward);
+    }
 }
 
 QVector<IDataSeries *> RecordingManager::getSeries() const
@@ -129,21 +164,7 @@ void RecordingManager::timerEvent(QTimerEvent *e)
 {
     if(e->timerId() == mTimerId)
     {
-        requestedDCCStep++;
-        if(requestedDCCStep > 126)
-        {
-            stop();
-            return;
-        }
-
-        if(mCommandStation)
-        {
-            mReqStepSeries->addPoint(requestedDCCStep, mElapsed.elapsed() / 1000.0);
-
-            mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
-                                                requestedDCCStep,
-                                                LocomotiveDirection::Forward);
-        }
+        requestStep(requestedDCCStep + 1);
         return;
     }
 
@@ -156,13 +177,19 @@ void RecordingManager::start()
 
     mRecvStepSeries->clear();
     mReqStepSeries->clear();
+    mRawSensorSeries->clear();
 
     m_currentRecording->clear();
 
-    mTimerId = startTimer(10000);
+    actualDCCStep = 0;
+    requestedDCCStep = 0;
+
+    mTimerId = startTimer(3000);
     mStartTimestamp = -1;
 
     mElapsed.start();
+
+    requestStep(requestedDCCStep + 1);
 }
 
 void RecordingManager::stop()
