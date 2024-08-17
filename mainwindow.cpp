@@ -7,8 +7,8 @@
 #include "recorder/locospeedcurve.h"
 #include "view/locospeedcurveview.h"
 
-//#include "input/dummyspeedsensor.h"
-//#include "commandstation/dummycommandstation.h"
+#include "input/dummyspeedsensor.h"
+#include "commandstation/dummycommandstation.h"
 #include "input/espanaloghallsensor.h"
 #include "commandstation/backends/z21commandstation.h"
 
@@ -20,10 +20,15 @@
 #include <QCheckBox>
 #include <QSpinBox>
 
+#include <QInputDialog>
+
 #include "train/locostatuswidget.h"
 #include "train/locomotive.h"
 #include "train/locomotivepool.h"
 #include "train/train.h"
+
+#include "recorder/series/movingaverageseries.h"
+#include "recorder/series/rawsensordataseries.h"
 
 LocoSpeedMapping mappingD753("D753",
                              47,
@@ -293,9 +298,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    mSpeedSensor = new ESPAnalogHallSensor(this);
-    //mCommandStation = new DummyCommandStation;
-    mCommandStation = new Z21CommandStation(this);
+    //mSpeedSensor = new ESPAnalogHallSensor(this);
+    mSpeedSensor = new DummySpeedSensor(this);
+    mCommandStation = new DummyCommandStation;
+    //mCommandStation = new Z21CommandStation(this);
 
     mRecView = new LocomotiveRecordingView;
     mSpeedCurveView = new LocoSpeedCurveView;
@@ -338,9 +344,9 @@ MainWindow::MainWindow(QWidget *parent)
     monitorLay->addWidget(locoBInvertCheck);
     mTabWidget->addTab(monitorPage, tr("Monitor"));
 
-    ESPAnalogHallConfigWidget *mConfig = new ESPAnalogHallConfigWidget;
-    mConfig->setSensor(mSpeedSensor);
-    mTabWidget->addTab(mConfig, tr("ESP Sensor"));
+//    ESPAnalogHallConfigWidget *mConfig = new ESPAnalogHallConfigWidget;
+//    mConfig->setSensor(mSpeedSensor);
+//    mTabWidget->addTab(mConfig, tr("ESP Sensor"));
 
 
 
@@ -348,31 +354,32 @@ MainWindow::MainWindow(QWidget *parent)
     mSpeedCurve = new LocoSpeedCurve(this);
     mSpeedCurve->setRecording(mRecManager->currentRecording());
 
-//    connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
-//            [sensor = mSpeedSensor](int /*address*/, int speedStep)
-//            {
-//                sensor->simulateSpeedStep(speedStep);
-//            });
+    connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
+            [sensor = mSpeedSensor](int /*address*/, int speedStep)
+            {
+                sensor->simulateSpeedStep(speedStep);
+            });
 
     mRecManager->setCommandStation(mCommandStation);
     mRecManager->setSpeedSensor(mSpeedSensor);
 
-    mRecView->setRecording(mRecManager->currentRecording());
+    mRecView->setRecMgr(mRecManager);
     mSpeedCurveView->setSpeedCurve(mSpeedCurve);
 
     connect(ui->actionStart, &QAction::triggered, this,
             [this, addressSpin]()
             {
                 mRecManager->setLocomotiveDCCAddress(addressSpin->value());
-                mSpeedSensor->resetTravelledCount();
+                //mSpeedSensor->resetTravelledCount();
+                mSpeedSensor->start();
                 mRecManager->start();
-                //mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
+                mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
             });
 
     connect(ui->actionStop, &QAction::triggered, this,
             [this]()
             {
-                //mSpeedSensor->stop();
+                mSpeedSensor->stop();
                 mRecManager->stop();
             });
 
@@ -380,8 +387,23 @@ MainWindow::MainWindow(QWidget *parent)
             [this]()
             {
                 mRecManager->emergencyStop();
-                //mSpeedSensor->stop();
+                mSpeedSensor->stop();
             });
+
+    connect(ui->actionAdd_Moving_Average, &QAction::triggered, this,
+            [this]()
+    {
+        QString name = QInputDialog::getText(this, tr("Moving Average"), tr("Name:"));
+        if(name.isEmpty())
+            return;
+
+        int windowSz = QInputDialog::getInt(this, tr("Moving Average"), tr("Window size:"), 0, 1, 100, 2);
+
+        MovingAverageSeries *mv = new MovingAverageSeries(windowSz, mRecManager);
+        mv->setName(name);
+        mv->setSource(mRecManager->rawSensorSeries());
+        mRecManager->registerSeries(mv);
+    });
 
     LocomotivePool *mPool = new LocomotivePool(this);
     mPool->setCommandStation(mCommandStation);

@@ -31,7 +31,14 @@
     <addaction name="actionStop"/>
     <addaction name="actionEmergency_Stop"/>
    </widget>
+   <widget class="QMenu" name="menuGraph">
+    <property name="title">
+     <string>Graph</string>
+    </property>
+    <addaction name="actionAdd_Moving_Average"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuGraph"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionStart">
@@ -47,6 +54,11 @@
   <action name="actionEmergency_Stop">
    <property name="text">
     <string>Emergency Stop</string>
+   </property>
+  </action>
+  <action name="actionAdd_Moving_Average">
+   <property name="text">
+    <string>Add Moving Average</string>
    </property>
   </action>
  </widget>
