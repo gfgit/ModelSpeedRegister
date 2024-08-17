@@ -252,7 +252,7 @@ void DataSeriesFilterModel::onSeriesRegistered(IDataSeries *s)
         connect(item->dataSeries(), &IDataSeries::pointAdded, this,
                 [this](int, const QPointF& pt)
         {
-            if(pt.x() + 5 > mTimeAxis->max())
+            if(mAxisRangeFollowsChanges && pt.x() + 5 > mTimeAxis->max())
                 mTimeAxis->setMax(pt.x() + 10);
         });
         break;
@@ -266,7 +266,7 @@ void DataSeriesFilterModel::onSeriesRegistered(IDataSeries *s)
         connect(item->dataSeries(), &IDataSeries::pointAdded, this,
                 [this](int, const QPointF& pt)
         {
-            if(pt.y() + 5 > mSpeedAxis->max())
+            if(mAxisRangeFollowsChanges && pt.y() + 5 > mSpeedAxis->max())
                 mSpeedAxis->setMax(pt.y() + 10);
         });
         break;
@@ -307,6 +307,16 @@ void DataSeriesFilterModel::onSeriesUnregistered(IDataSeries *s)
     endRemoveRows();
 }
 
+bool DataSeriesFilterModel::axisRangeFollowsChanges() const
+{
+    return mAxisRangeFollowsChanges;
+}
+
+void DataSeriesFilterModel::setAxisRangeFollowsChanges(bool newAxisRangeFollowsChanges)
+{
+    mAxisRangeFollowsChanges = newAxisRangeFollowsChanges;
+}
+
 DataSeriesGraph::DataSeriesGraph(IDataSeries *s, QObject *parent)
     : QLineSeries(parent)
     , mDataSeries(s)
@@ -316,6 +326,11 @@ DataSeriesGraph::DataSeriesGraph(IDataSeries *s, QObject *parent)
     connect(mDataSeries, &IDataSeries::pointChanged, this, &DataSeriesGraph::pointChanged);
 
     setName(mDataSeries->name());
+
+    for(int i = 0; i < s->getPointCount(); i++)
+    {
+        insert(i, s->getPointAt(i));
+    }
 }
 
 IDataSeries *DataSeriesGraph::dataSeries() const

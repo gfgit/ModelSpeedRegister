@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QSplitter>
 #include <QTableView>
+#include <QCheckBox>
 
 #include <QDebug>
 
@@ -26,10 +27,24 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
     mChartView = new ChartView(mChart);
     mSplitter->addWidget(mChartView);
 
-    mFilterView = new QTableView;
-    mSplitter->addWidget(mFilterView);
-
     mFilterModel = new DataSeriesFilterModel(mChart, this);
+
+    QWidget *lay2Widget = new QWidget;
+    QVBoxLayout *lay2 = new QVBoxLayout(lay2Widget);
+    mSplitter->addWidget(lay2Widget);
+
+    QCheckBox *checkBox = new QCheckBox(tr("Axis Follow Changes"));
+    lay2->addWidget(checkBox);
+
+    connect(checkBox, &QCheckBox::toggled, this,
+            [this](bool val)
+            {
+                mFilterModel->setAxisRangeFollowsChanges(val);
+            });
+    checkBox->setCheckState(Qt::Checked);
+
+    mFilterView = new QTableView;
+    lay2->addWidget(mFilterView);
     mFilterView->setModel(mFilterModel);
 
     connect(mChartView, &ChartView::scrollResetRequested, this,
@@ -37,7 +52,7 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
             {
                 // Reset origin to {0,0}
                 QRectF r = mFilterModel->getAxisRange();
-                r.moveTopLeft(QPointF());
+                r.moveBottomLeft(QPointF());
                 mFilterModel->setAxisRange(r);
             });
 }

@@ -66,6 +66,9 @@ public:
     void setAxisRange(const QRectF &r);
     QRectF getAxisRange() const;
 
+    bool axisRangeFollowsChanges() const;
+    void setAxisRangeFollowsChanges(bool newAxisRangeFollowsChanges);
+
 private slots:
     void onSeriesRegistered(IDataSeries *s);
     void onSeriesUnregistered(IDataSeries *s);
@@ -79,6 +82,8 @@ private:
     QValueAxis *mTimeAxis;
 
     QVector<DataSeriesGraph *> mItems;
+
+    bool mAxisRangeFollowsChanges = true;
 };
 
 #endif // DATASERIESFILTERMODEL_H
