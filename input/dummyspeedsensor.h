@@ -30,6 +30,10 @@ private:
     int mCurrentStep = 0;
 
     QElapsedTimer mElapsedTimer;
+
+    double travelledMillimeters = 0;
+    double lastSpeedMetersPerSecond = 0;
+    qint64 lastSpeedStart = 0;
 };
 
 #endif // DUMMYSPEEDSENSOR_H

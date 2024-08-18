@@ -18,11 +18,20 @@ void DummySpeedSensor::timerEvent(QTimerEvent *e)
 {
     if(e->timerId() == mTimerId)
     {
+        qint64 newTime = mElapsedTimer.elapsed();
+        qint64 deltaTimeMillis = newTime - lastSpeedStart;
+        lastSpeedStart = newTime;
+
+        double newTravelled = lastSpeedMetersPerSecond * deltaTimeMillis;
+        travelledMillimeters += newTravelled;
+
         double currentSpeed = mSpeedCurve.at(mCurrentStep);
         const double MAX_OSCILLATION = 4.0;
         double noise = QRandomGenerator::global()->bounded(MAX_OSCILLATION) - MAX_OSCILLATION / 2;
         currentSpeed += noise;
-        emit speedReading(currentSpeed, 0, mElapsedTimer.elapsed());
+        lastSpeedMetersPerSecond = currentSpeed;
+
+        emit speedReading(currentSpeed, travelledMillimeters, newTime);
         return;
     }
 
@@ -34,6 +43,11 @@ void DummySpeedSensor::start()
     stop();
 
     generateRandomSpeedCurve();
+
+    travelledMillimeters = 0;
+    lastSpeedMetersPerSecond = 0;
+    lastSpeedStart = 0;
+
     mTimerId = startTimer(100);
     mElapsedTimer.start();
 }
