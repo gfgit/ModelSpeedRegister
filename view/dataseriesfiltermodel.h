@@ -80,6 +80,7 @@ private:
     QValueAxis *mSpeedAxis;
     QValueAxis *mStepAxis;
     QValueAxis *mTimeAxis;
+    QValueAxis *mTravelledAxis;
 
     QVector<DataSeriesGraph *> mItems;
 

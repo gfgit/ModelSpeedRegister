@@ -30,9 +30,15 @@ DataSeriesFilterModel::DataSeriesFilterModel(Chart *chart, QObject *parent)
     mStepAxis->setLabelFormat("%.0f");
     mStepAxis->setTitleText("Step");
 
+    mTravelledAxis = new QValueAxis(this);
+    mTravelledAxis->setRange(0, 50000);
+    mTravelledAxis->setLabelFormat("%.1f");
+    mTravelledAxis->setTitleText("Distance (mm)");
+
     mChart->addAxis(mTimeAxis, Qt::AlignBottom);
     mChart->addAxis(mSpeedAxis, Qt::AlignLeft);
     mChart->addAxis(mStepAxis, Qt::AlignRight);
+    mChart->addAxis(mTravelledAxis, Qt::AlignRight);
 }
 
 QVariant DataSeriesFilterModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -277,6 +283,10 @@ void DataSeriesFilterModel::onSeriesRegistered(IDataSeries *s)
     case DataSeriesType::TotalStepAverage:
         item->setColor(Qt::darkGreen);
         item->attachAxis(mSpeedAxis);
+        break;
+    case DataSeriesType::TravelledDistance:
+        item->setColor(Qt::darkGray);
+        item->attachAxis(mTravelledAxis);
         break;
     default:
         break;
