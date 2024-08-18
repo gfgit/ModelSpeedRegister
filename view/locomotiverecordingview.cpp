@@ -11,6 +11,8 @@
 #include <QTableView>
 #include <QCheckBox>
 
+#include <QColorDialog>
+
 #include <QDebug>
 
 LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
@@ -46,6 +48,17 @@ LocomotiveRecordingView::LocomotiveRecordingView(QWidget *parent)
     mFilterView = new QTableView;
     lay2->addWidget(mFilterView);
     mFilterView->setModel(mFilterModel);
+
+    connect(mFilterView, &QTableView::activated, this,
+            [this](const QModelIndex& idx)
+    {
+        if(idx.column() != DataSeriesFilterModel::Color)
+            return;
+
+        QColor color = mFilterModel->getColorAt(idx);
+        color = QColorDialog::getColor(color, this, tr("Choose Series Color"));
+        mFilterModel->setColorAt(idx, color);
+    });
 
     connect(mChartView, &ChartView::scrollResetRequested, this,
             [this]()
