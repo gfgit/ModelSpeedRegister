@@ -420,6 +420,7 @@ MainWindow::MainWindow(QWidget *parent)
 
         TotalStepAverageSeries *s = new TotalStepAverageSeries(mRecManager);
         s->setName(name);
+        s->setAccelerationMilliseconds(accelMillis);
         s->setTravelledSource(mRecManager->sensorTravelledSeries());
         s->setRecvStepSeries(mRecManager->recvStepSeries());
         s->setReqStepSeries(mRecManager->reqStepSeries());
