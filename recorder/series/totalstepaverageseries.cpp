@@ -11,8 +11,27 @@ TotalStepAverageSeries::TotalStepAverageSeries(QObject *parent)
 
 void TotalStepAverageSeries::onRecvStepPointAdded(int indexAdded, const QPointF &point)
 {
-    if(indexAdded % 2 == 0)
+    if(indexAdded % 2 == 1)
     {
+        // Odd Indexes are start steps
+        lastRecvStepIdx = calculateAvg(lastRecvStepIdx);
+    }
+}
+
+void TotalStepAverageSeries::onSensorPointAdded(int indexAdded, const QPointF &point)
+{
+    if(waitingForMoreSensorData)
+    {
+        // Continue previously paused calculation
+        lastRecvStepIdx = calculateAvg(lastRecvStepIdx);
+    }
+}
+
+void TotalStepAverageSeries::onReqStepPointAdded(int indexAdded, const QPointF &point)
+{
+    if(waitingForRequestEnd && indexAdded % 2 == 0)
+    {
+        // Even Indexes are end steps
         lastRecvStepIdx = calculateAvg(lastRecvStepIdx);
     }
 }
@@ -61,6 +80,9 @@ void TotalStepAverageSeries::recalculate()
     }
     mPoints.clear();
 
+    waitingForMoreSensorData = false;
+    waitingForRequestEnd = false;
+
     if(!mTravelledSource || !mReqStepSeries || !mRecvStepSeries)
     {
         return;
@@ -90,16 +112,30 @@ int TotalStepAverageSeries::calculateAvg(int fromRecvIdx)
         QPointF recvStart = mRecvStepSeries->getPointAt(recvStepIdx);
 
         QPointF reqEnd;
-        bool hasEnd = mReqStepSeries->getPointCount() >= (recvStepIdx + 1);
-        if(hasEnd)
+        bool hasEnd = false;
+        for(int reqStepIdx = qMax(0, recvStepIdx - 3); reqStepIdx < mRecvStepSeries->getPointCount(); reqStepIdx += 2)
         {
-            reqEnd = mReqStepSeries->getPointAt(recvStepIdx + 1);
+            // Even indexes are requested steps end (Just before start of next requested step)
+            reqEnd = mReqStepSeries->getPointAt(reqStepIdx);
+            if(qFuzzyCompare(reqEnd.y(), recvStart.y()))
+            {
+                hasEnd = true;
+                break;
+            }
         }
 
-        qint64 millisStart = recvStart.y() * 1000;
-        qint64 millisEnd = reqEnd.y() * 1000;
 
-        if(millisStart + mAccelerationMilliseconds < millisEnd)
+        if(!hasEnd)
+        {
+            // Wait for request end
+            waitingForRequestEnd = true;
+            return recvStepIdx;
+        }
+
+        qint64 millisStart = recvStart.x() * 1000 + mAccelerationMilliseconds;
+        qint64 millisEnd = reqEnd.x() * 1000;
+
+        if(millisStart > millisEnd)
             continue;
 
         QPointF travelledStart, travelledEnd;
@@ -120,6 +156,13 @@ int TotalStepAverageSeries::calculateAvg(int fromRecvIdx)
                 break;
 
             travelledEnd = pt;
+        }
+
+        if(travelledIdx >= mTravelledSource->getPointCount())
+        {
+            // Wait for more sensor data to arrive
+            waitingForMoreSensorData = true;
+            return recvStepIdx;
         }
 
         if(!startFound || travelledStart == travelledEnd)
@@ -153,6 +196,7 @@ qint64 TotalStepAverageSeries::accelerationMilliseconds() const
 void TotalStepAverageSeries::setAccelerationMilliseconds(qint64 newAccelerationMilliseconds)
 {
     mAccelerationMilliseconds = newAccelerationMilliseconds;
+    recalculate();
 }
 
 IDataSeries *TotalStepAverageSeries::recvStepSeries() const
@@ -192,6 +236,7 @@ void TotalStepAverageSeries::setReqStepSeries(IDataSeries *newReqStepSeries)
 {
     if(mReqStepSeries)
     {
+        disconnect(mReqStepSeries, &IDataSeries::pointAdded, this, &TotalStepAverageSeries::onReqStepPointAdded);
         disconnect(mReqStepSeries, &IDataSeries::pointChanged, this, &TotalStepAverageSeries::onPointChanged);
         disconnect(mReqStepSeries, &IDataSeries::pointRemoved, this, &TotalStepAverageSeries::onPointRemoved);
         disconnect(mReqStepSeries, &QObject::destroyed, this, &TotalStepAverageSeries::onSourceDestroyed);
@@ -201,6 +246,7 @@ void TotalStepAverageSeries::setReqStepSeries(IDataSeries *newReqStepSeries)
 
     if(mReqStepSeries)
     {
+        connect(mReqStepSeries, &IDataSeries::pointAdded, this, &TotalStepAverageSeries::onReqStepPointAdded);
         connect(mReqStepSeries, &IDataSeries::pointChanged, this, &TotalStepAverageSeries::onPointChanged);
         connect(mReqStepSeries, &IDataSeries::pointRemoved, this, &TotalStepAverageSeries::onPointRemoved);
         connect(mReqStepSeries, &QObject::destroyed, this, &TotalStepAverageSeries::onSourceDestroyed);
@@ -218,6 +264,7 @@ void TotalStepAverageSeries::setTravelledSource(IDataSeries *newSource)
 {
     if(mTravelledSource)
     {
+        disconnect(mTravelledSource, &IDataSeries::pointAdded, this, &TotalStepAverageSeries::onSensorPointAdded);
         disconnect(mTravelledSource, &IDataSeries::pointChanged, this, &TotalStepAverageSeries::onPointChanged);
         disconnect(mTravelledSource, &IDataSeries::pointRemoved, this, &TotalStepAverageSeries::onPointRemoved);
         disconnect(mTravelledSource, &QObject::destroyed, this, &TotalStepAverageSeries::onSourceDestroyed);
@@ -227,6 +274,7 @@ void TotalStepAverageSeries::setTravelledSource(IDataSeries *newSource)
 
     if(mTravelledSource)
     {
+        connect(mTravelledSource, &IDataSeries::pointAdded, this, &TotalStepAverageSeries::onSensorPointAdded);
         connect(mTravelledSource, &IDataSeries::pointChanged, this, &TotalStepAverageSeries::onPointChanged);
         connect(mTravelledSource, &IDataSeries::pointRemoved, this, &TotalStepAverageSeries::onPointRemoved);
         connect(mTravelledSource, &QObject::destroyed, this, &TotalStepAverageSeries::onSourceDestroyed);

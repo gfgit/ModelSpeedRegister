@@ -29,7 +29,9 @@ public:
     void setAccelerationMilliseconds(qint64 newAccelerationMilliseconds);
 
 private slots:
-    void onRecvStepPointAdded(int index, const QPointF& point);
+    void onRecvStepPointAdded(int indexAdded, const QPointF& point);
+    void onSensorPointAdded(int indexAdded, const QPointF& point);
+    void onReqStepPointAdded(int indexAdded, const QPointF &point);
     void onPointChanged();
     void onPointRemoved();
     void onSourceDestroyed(QObject *source);
@@ -46,8 +48,10 @@ private:
 
     QVector<QPointF> mPoints;
 
-    qint64 mAccelerationMilliseconds;
+    qint64 mAccelerationMilliseconds = 1000;
     int lastRecvStepIdx = 1;
+    bool waitingForMoreSensorData = false;
+    bool waitingForRequestEnd = false;
 };
 
 #endif // TOTALSTEPAVERAGESERIES_H
