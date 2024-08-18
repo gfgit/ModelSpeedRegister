@@ -195,7 +195,7 @@ void RecordingManager::start()
     actualDCCStep = 0;
     requestedDCCStep = 0;
 
-    mTimerId = startTimer(3000);
+    mTimerId = startTimer(5000);
     mStartTimestamp = -1;
 
     mElapsed.start();
