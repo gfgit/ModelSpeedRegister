@@ -13,6 +13,7 @@ class IDataSeries;
 class RequestedSpeedStepSeries;
 class ReceivedSpeedStepSeries;
 class RawSensorDataSeries;
+class SensorTravelledDistanceSeries;
 
 class LocomotiveRecording;
 
@@ -49,6 +50,8 @@ public:
 
     void requestStep(int step);
 
+    SensorTravelledDistanceSeries *sensorTravelledSeries() const;
+
 signals:
     void seriesRegistered(IDataSeries *s);
     void seriesUnregistered(IDataSeries *s);
@@ -82,6 +85,7 @@ private:
     RequestedSpeedStepSeries *mReqStepSeries;
     ReceivedSpeedStepSeries *mRecvStepSeries;
     RawSensorDataSeries *mRawSensorSeries;
+    SensorTravelledDistanceSeries *mSensorTravelledSeries;
 
     QElapsedTimer mElapsed;
 };

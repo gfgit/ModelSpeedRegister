@@ -9,6 +9,7 @@
 #include "series/requestedspeedstepseries.h"
 #include "series/receivedspeedstepseries.h"
 #include "series/rawsensordataseries.h"
+#include "series/sensortravelleddistanceseries.h"
 
 #include <QTimerEvent>
 
@@ -25,6 +26,9 @@ RecordingManager::RecordingManager(QObject *parent)
 
     mRawSensorSeries = new RawSensorDataSeries(this);
     registerSeries(mRawSensorSeries);
+
+    mSensorTravelledSeries = new SensorTravelledDistanceSeries(this);
+    registerSeries(mSensorTravelledSeries);
 }
 
 RecordingManager::~RecordingManager()
@@ -46,6 +50,7 @@ void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelle
     timestampMilliSec -= mStartTimestamp;
 
     mRawSensorSeries->addPoint(metersPerSecond, timestampMilliSec / 1000.0);
+    mSensorTravelledSeries->addPoint(travelledMillimeters, timestampMilliSec / 1000.0);
 
     qDebug() << "READ:" << timestampMilliSec << metersPerSecond << travelledMillimeters;
 
@@ -95,6 +100,11 @@ RequestedSpeedStepSeries *RecordingManager::reqStepSeries() const
 RawSensorDataSeries *RecordingManager::rawSensorSeries() const
 {
     return mRawSensorSeries;
+}
+
+SensorTravelledDistanceSeries *RecordingManager::sensorTravelledSeries() const
+{
+    return mSensorTravelledSeries;
 }
 
 void RecordingManager::requestStep(int step)
@@ -178,6 +188,7 @@ void RecordingManager::start()
     mRecvStepSeries->clear();
     mReqStepSeries->clear();
     mRawSensorSeries->clear();
+    mSensorTravelledSeries->clear();
 
     m_currentRecording->clear();
 

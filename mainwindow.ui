@@ -36,6 +36,7 @@
      <string>Graph</string>
     </property>
     <addaction name="actionAdd_Moving_Average"/>
+    <addaction name="actionAdd_Total_Average"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuGraph"/>
@@ -59,6 +60,11 @@
   <action name="actionAdd_Moving_Average">
    <property name="text">
     <string>Add Moving Average</string>
+   </property>
+  </action>
+  <action name="actionAdd_Total_Average">
+   <property name="text">
+    <string>Add Total Average</string>
    </property>
   </action>
  </widget>

@@ -1,47 +1,47 @@
-#include "rawsensordataseries.h"
+#include "sensortravelleddistanceseries.h"
 
-RawSensorDataSeries::RawSensorDataSeries(QObject *parent)
+SensorTravelledDistanceSeries::SensorTravelledDistanceSeries(QObject *parent)
     : IDataSeries{parent}
 {
-    setName(tr("Raw Sensor Read"));
+    setName(tr("Travelled Distance"));
 }
 
-DataSeriesType RawSensorDataSeries::getType() const
+DataSeriesType SensorTravelledDistanceSeries::getType() const
 {
-    return DataSeriesType::SensorRawData;
+    return DataSeriesType::TravelledDistance;
 }
 
-int RawSensorDataSeries::getPointCount() const
+int SensorTravelledDistanceSeries::getPointCount() const
 {
     return mPoints.count();
 }
 
-QPointF RawSensorDataSeries::getPointAt(int index) const
+QPointF SensorTravelledDistanceSeries::getPointAt(int index) const
 {
     if(index < 0 || index >= mPoints.count())
         return QPointF();
     return mPoints.at(index);
 }
 
-QString RawSensorDataSeries::getPointTooltip(int index) const
+QString SensorTravelledDistanceSeries::getPointTooltip(int index) const
 {
     if(index < 0 || index >= mPoints.count())
         return QString();
 
     const QPointF point = mPoints.at(index);
 
-    return tr("Raw Speed: %1\n"
+    return tr("Travelled: %1\n"
               "Time: %2 s").arg(point.y()).arg(point.x());
 }
 
-void RawSensorDataSeries::addPoint(double speed, double seconds)
+void SensorTravelledDistanceSeries::addPoint(double speed, double seconds)
 {
     QPointF point(seconds, speed);
     mPoints.append(point);
     emit pointAdded(mPoints.size() - 1, point);
 }
 
-void RawSensorDataSeries::clear()
+void SensorTravelledDistanceSeries::clear()
 {
     int oldSize = mPoints.size();
     mPoints.clear();

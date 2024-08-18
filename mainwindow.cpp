@@ -29,6 +29,10 @@
 
 #include "recorder/series/movingaverageseries.h"
 #include "recorder/series/rawsensordataseries.h"
+#include "recorder/series/totalstepaverageseries.h"
+#include "recorder/series/receivedspeedstepseries.h"
+#include "recorder/series/requestedspeedstepseries.h"
+#include "recorder/series/sensortravelleddistanceseries.h"
 
 LocoSpeedMapping mappingD753("D753",
                              47,
@@ -403,6 +407,23 @@ MainWindow::MainWindow(QWidget *parent)
         mv->setName(name);
         mv->setSource(mRecManager->rawSensorSeries());
         mRecManager->registerSeries(mv);
+    });
+
+    connect(ui->actionAdd_Total_Average, &QAction::triggered, this,
+            [this]()
+    {
+        QString name = QInputDialog::getText(this, tr("Total Step Average"), tr("Name:"));
+        if(name.isEmpty())
+            return;
+
+        int accelMillis = QInputDialog::getInt(this, tr("Total Step Average"), tr("Acceleration Millis:"), 1000, 0, 10000, 100);
+
+        TotalStepAverageSeries *s = new TotalStepAverageSeries(mRecManager);
+        s->setName(name);
+        s->setTravelledSource(mRecManager->sensorTravelledSeries());
+        s->setRecvStepSeries(mRecManager->recvStepSeries());
+        s->setReqStepSeries(mRecManager->reqStepSeries());
+        mRecManager->registerSeries(s);
     });
 
     LocomotivePool *mPool = new LocomotivePool(this);

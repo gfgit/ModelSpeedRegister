@@ -30,7 +30,7 @@ QString ReceivedSpeedStepSeries::getPointTooltip(int index) const
 
     const QPointF point = mPoints.at(index);
 
-    return tr("Req Step: %1\n"
+    return tr("Recv Step: %1\n"
               "Time: %2 s").arg(point.y()).arg(point.x());
 }
 

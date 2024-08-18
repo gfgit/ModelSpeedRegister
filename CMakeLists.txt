@@ -92,6 +92,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         recorder/series/movingaverageseries.h recorder/series/movingaverageseries.cpp
         view/dataseriesfiltermodel.h view/dataseriesfiltermodel.cpp
         recorder/series/rawsensordataseries.h recorder/series/rawsensordataseries.cpp
+        recorder/series/sensortravelleddistanceseries.h recorder/series/sensortravelleddistanceseries.cpp
+        recorder/series/totalstepaverageseries.h recorder/series/totalstepaverageseries.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

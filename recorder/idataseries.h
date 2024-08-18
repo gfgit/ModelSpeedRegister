@@ -12,6 +12,7 @@ enum DataSeriesType
     RequestedSpeedStep,
     ReceivedSpeedStep,
     SensorRawData,
+    TravelledDistance,
     MovingAverage,
     TotalStepAverage
 };
