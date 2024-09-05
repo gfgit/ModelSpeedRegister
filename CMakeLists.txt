@@ -26,6 +26,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
         commandstation/backends/endian.h
         commandstation/backends/z21messages.h
+        commandstation/backends/z21commandstation.h
+        commandstation/backends/z21commandstation.cpp
+
         commandstation/dummycommandstation.h commandstation/dummycommandstation.cpp
         commandstation/icommandstation.h commandstation/icommandstation.cpp
 

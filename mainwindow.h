@@ -40,8 +40,8 @@ private:
 
     LocoSpeedCurveView *mSpeedCurveView;
 
-    // ESPAnalogHallSensor *mSpeedSensor;
-    DummySpeedSensor *mSpeedSensor;
+    ESPAnalogHallSensor *mSpeedSensor;
+    // DummySpeedSensor *mSpeedSensor;
     ICommandStation *mCommandStation;
 
     QTabWidget *mTabWidget;

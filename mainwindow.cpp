@@ -305,10 +305,10 @@ MainWindow::MainWindow(QWidget *parent)
     testStatusLabel = new QLabel(this);
     statusBar()->addPermanentWidget(testStatusLabel);
 
-    //mSpeedSensor = new ESPAnalogHallSensor(this);
-    mSpeedSensor = new DummySpeedSensor(this);
-    mCommandStation = new DummyCommandStation;
-    //mCommandStation = new Z21CommandStation(this);
+    mSpeedSensor = new ESPAnalogHallSensor(this);
+    // mSpeedSensor = new DummySpeedSensor(this);
+    // mCommandStation = new DummyCommandStation;
+    mCommandStation = new Z21CommandStation(this);
 
     mRecView = new LocomotiveRecordingView;
     mSpeedCurveView = new LocoSpeedCurveView;
@@ -343,19 +343,17 @@ MainWindow::MainWindow(QWidget *parent)
     monitorLay->addWidget(locoBInvertCheck);
     mTabWidget->addTab(monitorPage, tr("Monitor"));
 
-//    ESPAnalogHallConfigWidget *mConfig = new ESPAnalogHallConfigWidget;
-//    mConfig->setSensor(mSpeedSensor);
-//    mTabWidget->addTab(mConfig, tr("ESP Sensor"));
-
-
+    ESPAnalogHallConfigWidget *mConfig = new ESPAnalogHallConfigWidget;
+    mConfig->setSensor(mSpeedSensor);
+    mTabWidget->addTab(mConfig, tr("ESP Sensor"));
 
     mRecManager = new RecordingManager(this);
 
-    connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
-            [sensor = mSpeedSensor](int /*address*/, int speedStep)
-            {
-                sensor->simulateSpeedStep(speedStep);
-            });
+    // connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
+    //         [this](int /*address*/, int speedStep)
+    //         {
+    //             mSpeedSensor->simulateSpeedStep(speedStep);
+    //         });
 
     mRecManager->setCommandStation(mCommandStation);
     mRecManager->setSpeedSensor(mSpeedSensor);
@@ -395,7 +393,7 @@ MainWindow::MainWindow(QWidget *parent)
             [this]()
             {
                 mRecManager->emergencyStop();
-                mSpeedSensor->stop();
+                //mSpeedSensor->stop();
             });
 
     connect(ui->actionAdd_Moving_Average, &QAction::triggered, this,
@@ -474,17 +472,20 @@ void MainWindow::startTest()
     mRecManager->setDefaultStepTimeMillis(dlg->getDefaultStepTime());
     mRecManager->setStartingDCCStep(dlg->getStartingDCCStep());
 
-    //mSpeedSensor->resetTravelledCount();
-    mSpeedSensor->start();
+    mSpeedSensor->resetTravelledCount();
 
-    if(mRecManager->start())
-    {
-        mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
-    }
-    else
-    {
-        mSpeedSensor->stop();
-    }
+    //mSpeedSensor->start();
+    bool started = mRecManager->start();
+
+
+    // if(started)
+    // {
+    //     mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
+    // }
+    // else
+    // {
+    //     mSpeedSensor->stop();
+    // }
 
     delete dlg;
 }
@@ -508,6 +509,6 @@ void MainWindow::onRecMgrStateChanged(int /*newState*/)
 
     testStatusLabel->setText(stateName);
 
-    if(mRecManager->state() == RecordingManager::State::Stopped)
-        mSpeedSensor->stop();
+    // if(mRecManager->state() == RecordingManager::State::Stopped)
+    //     mSpeedSensor->stop();
 }
