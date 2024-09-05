@@ -611,7 +611,9 @@ QPointF SpeedCurveTableModel::getValueAtIdx(const QModelIndex &idx) const
     int lastStepIndex = getFirstIndexForStep(series, step + 1);
 
     indexInSeries += baseStepIndex;
-    if(indexInSeries >= series->count() || indexInSeries >= lastStepIndex)
+    if(indexInSeries >= series->count()
+            || (indexInSeries >= lastStepIndex
+                && lastStepIndex = -1))
         return invalid;
 
     QPointF pt = series->at(indexInSeries);
