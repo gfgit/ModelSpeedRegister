@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>30</height>
+     <height>36</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -54,6 +54,8 @@
    </attribute>
    <addaction name="actionNext_Step"/>
    <addaction name="actionOther_5_seconds"/>
+   <addaction name="separator"/>
+   <addaction name="actionStop"/>
   </widget>
   <action name="actionStart">
    <property name="text">
