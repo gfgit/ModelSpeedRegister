@@ -72,6 +72,7 @@ public:
     QLineSeries *addNewCurve(const QString& name);
     void removeCurveAt(int column);
     QLineSeries *getCurveAt(int column) const;
+    void updateCurveAt(int column);
 
     QPointF getValueAtIdx(const QModelIndex& idx) const;
     void storeValueInCurrentCurve(const QModelIndex& idx, const QPointF &val);

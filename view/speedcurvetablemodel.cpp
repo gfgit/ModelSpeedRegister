@@ -583,6 +583,15 @@ QLineSeries *SpeedCurveTableModel::getCurveAt(int column) const
     return mCurves.at(column - mSeries.size());
 }
 
+void SpeedCurveTableModel::updateCurveAt(int column)
+{
+    if(getColumnType(column) != ColumnType::StoredSpeedCurve)
+        return;
+
+    emit dataChanged(index(0, column),
+                     index(mLastRow, column));
+}
+
 QPointF SpeedCurveTableModel::getValueAtIdx(const QModelIndex &idx) const
 {
     QPointF invalid(-1, -1);

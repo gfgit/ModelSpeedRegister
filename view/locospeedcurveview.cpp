@@ -15,7 +15,10 @@
 #include <QPointer>
 #include <QMenu>
 #include <QInputDialog>
+#include <QFileDialog>
 #include <QColorDialog>
+
+#include "../recorder/rawspeedcurveio.h"
 
 LocoSpeedCurveView::LocoSpeedCurveView(QWidget *parent)
     : QWidget{parent}
@@ -199,15 +202,52 @@ void LocoSpeedCurveView::onTableContextMenu(const QPoint &pos)
 
     actRem->setEnabled(colType == SpeedCurveTableModel::ColumnType::StoredSpeedCurve);
 
-    menu->addAction(tr("New Curve"),
-                    this, [this]()
+    if(currEdit == -1)
     {
-        QString name;
-        name = QInputDialog::getText(this,
-                                     tr("Add New Curve"),
-                                     tr("Name:"));
-        mFilterModel->addNewCurve(name);
-    });
+        menu->addAction(tr("New Curve"),
+                        this, [this]()
+        {
+            QString name;
+            name = QInputDialog::getText(this,
+                                         tr("Add New Curve"),
+                                         tr("Name:"));
+            mFilterModel->addNewCurve(name);
+        });
+
+        if(colType == SpeedCurveTableModel::ColumnType::StoredSpeedCurve)
+        {
+            menu->addAction(tr("Load from File"),
+                            this, [this, idx]()
+            {
+                QString fileName;
+                fileName = QFileDialog::getOpenFileName(this,
+                                                        tr("Open Curve File"));
+                if(fileName.isEmpty())
+                    return;
+
+                QLineSeries *s = mFilterModel->getCurveAt(idx.column());
+                if(!s)
+                    return;
+                RawSpeedCurveIO::readCurveFromFile(fileName, s);
+                mFilterModel->updateCurveAt(idx.column());
+            });
+
+            menu->addAction(tr("Save to File"),
+                            this, [this, idx]()
+            {
+                QString fileName;
+                fileName = QFileDialog::getSaveFileName(this,
+                                                        tr("Save Curve File"));
+                if(fileName.isEmpty())
+                    return;
+
+                QLineSeries *s = mFilterModel->getCurveAt(idx.column());
+                if(!s)
+                    return;
+                RawSpeedCurveIO::saveCurveToFile(fileName, s);
+            });
+        }
+    }
 
     menu->exec(mFilterView->viewport()->mapToGlobal(pos));
     if(!menu)
