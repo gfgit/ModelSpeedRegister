@@ -613,7 +613,7 @@ QPointF SpeedCurveTableModel::getValueAtIdx(const QModelIndex &idx) const
     indexInSeries += baseStepIndex;
     if(indexInSeries >= series->count()
             || (indexInSeries >= lastStepIndex
-                && lastStepIndex = -1))
+                && lastStepIndex != -1))
         return invalid;
 
     QPointF pt = series->at(indexInSeries);
@@ -647,6 +647,30 @@ void SpeedCurveTableModel::storeValueInCurrentCurve(const QModelIndex &idx, cons
 
     emit dataChanged(index(stepStart, 0),
                      index(stepEnd, mSeries.size() + mCurves.size() - 1));
+}
+
+void SpeedCurveTableModel::storeFirstOfEachStepInCurrentCurve(int sourceCol)
+{
+    QLineSeries *currentEditSeries =  getSeriesAtColumn(mCurrentEditCurve);
+    if(!currentEditSeries)
+        return;
+
+    QLineSeries *sourceSeries =  getSeriesAtColumn(sourceCol);
+    if(!sourceSeries)
+        return;
+
+    for(int step = 1; step <= 126; step++)
+    {
+        int idx = getFirstIndexForStep(sourceSeries, step);
+        if(idx != -1)
+        {
+            currentEditSeries->replace(step, sourceSeries->at(idx));
+        }
+    }
+
+    // Refresh all
+    emit dataChanged(index(0, 0),
+                     index(mLastRow, mSeries.size() + mCurves.size() - 1));
 }
 
 bool SpeedCurveTableModel::axisRangeFollowsChanges() const

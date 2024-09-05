@@ -75,6 +75,7 @@ public:
 
     QPointF getValueAtIdx(const QModelIndex& idx) const;
     void storeValueInCurrentCurve(const QModelIndex& idx, const QPointF &val);
+    void storeFirstOfEachStepInCurrentCurve(int sourceCol);
 
 private slots:
     void onSeriesRegistered(IDataSeries *s);

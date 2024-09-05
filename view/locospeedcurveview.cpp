@@ -142,6 +142,15 @@ void LocoSpeedCurveView::onTableContextMenu(const QPoint &pos)
             mFilterModel->storeValueInCurrentCurve(idx, val);
         });
     }
+    else if(currEdit != -1)
+    {
+        menu->addAction(tr("Copy This Curve"),
+                        this,
+                        [this, idx]()
+        {
+            mFilterModel->storeFirstOfEachStepInCurrentCurve(idx.column());
+        });
+    }
 
     if(currEdit != -1)
         menu->addSeparator();
