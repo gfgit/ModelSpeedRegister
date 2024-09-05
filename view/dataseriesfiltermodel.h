@@ -4,31 +4,12 @@
 #include <QAbstractTableModel>
 #include <QVector>
 
-#include <QLineSeries>
-
 class IDataSeries;
 class RecordingManager;
 
 class Chart;
 class QValueAxis;
-
-class DataSeriesGraph : public QLineSeries
-{
-    Q_OBJECT
-public:
-    DataSeriesGraph(IDataSeries *s, QObject *parent = nullptr);
-
-    IDataSeries *dataSeries() const;
-
-private slots:
-    void pointAdded(int index, const QPointF& point);
-    void pointRemoved(int index);
-    void pointChanged(int index, const QPointF& newPoint);
-
-private:
-    IDataSeries *mDataSeries;
-};
-
+class DataSeriesGraph;
 
 class DataSeriesFilterModel : public QAbstractTableModel
 {
@@ -44,6 +25,7 @@ public:
     };
 
     explicit DataSeriesFilterModel(Chart *chart, QObject *parent = nullptr);
+    ~DataSeriesFilterModel();
 
     // Header:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
