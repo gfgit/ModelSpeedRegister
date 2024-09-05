@@ -485,6 +485,8 @@ void MainWindow::startTest()
     {
         mSpeedSensor->stop();
     }
+
+    delete dlg;
 }
 
 void MainWindow::onRecMgrStateChanged(int /*newState*/)
