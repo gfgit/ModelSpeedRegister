@@ -33,10 +33,14 @@ RecordingManager::RecordingManager(QObject *parent)
 RecordingManager::~RecordingManager()
 {
     stop();
+    stopInternal();
 }
 
 void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec)
 {
+    if(mState == State::Stopped)
+        return;
+
     if(mStartTimestamp == -1)
     {
         // Reset time reference
@@ -51,20 +55,29 @@ void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelle
     qDebug() << "READ:" << timestampMilliSec << metersPerSecond << travelledMillimeters;
 
     //TODO: direction
+
+    if(mState == State::WaitingToStop)
+        tryStopInternal();
 }
 
 void RecordingManager::onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction)
 {
-    if(address != locomotiveDCCAddress)
+    if(mState == State::Stopped || address != locomotiveDCCAddress)
         return;
 
     int oldRecvStep = actualDCCStep;
     actualDCCStep = speedStep;
 
+    if(mReqStepIsPending && actualDCCStep == requestedDCCStep)
+        mReqStepIsPending = false;
+
     mRecvStepSeries->addPoint(oldRecvStep, mElapsed.elapsed() / 1000.0);
     mRecvStepSeries->addPoint(actualDCCStep, mElapsed.elapsed() / 1000.0);
 
     //TODO: direction
+
+    if(mState == State::WaitingToStop)
+        tryStopInternal();
 }
 
 void RecordingManager::onSeriesDestroyed(QObject *s)
@@ -84,10 +97,88 @@ void RecordingManager::requestStepInternal(int step)
         mReqStepSeries->addPoint(oldStep, mElapsed.elapsed() / 1000.0);
         mReqStepSeries->addPoint(requestedDCCStep, mElapsed.elapsed() / 1000.0);
 
+        mReqStepIsPending = true;
         mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
                                             requestedDCCStep,
                                             LocomotiveDirection::Forward);
     }
+}
+
+RecordingManager::State RecordingManager::state() const
+{
+    return mState;
+}
+
+void RecordingManager::setState(State newState)
+{
+    mState = newState;
+    emit stateChanged(int(mState));
+}
+
+void RecordingManager::tryStopInternal()
+{
+    if(mState != State::WaitingToStop || mReqStepIsPending)
+        return; // Command station reply is still pending
+
+    QPointF lastSensorRead = mRawSensorSeries->getPointAt(mRawSensorSeries->getPointCount() - 1);
+    QPointF lastReq = mReqStepSeries->getPointAt(mReqStepSeries->getPointCount() - 1);
+    if(lastSensorRead.x() < lastReq.x())
+        return; // Wait for last sensor data
+
+    // We received all data until our last requested step
+    stopInternal();
+}
+
+int RecordingManager::defaultStepTimeMillis() const
+{
+    return mDefaultStepTimeMillis;
+}
+
+void RecordingManager::setDefaultStepTimeMillis(int newDefaultStepTimeMillis)
+{
+    if((newDefaultStepTimeMillis < 1000) || (newDefaultStepTimeMillis > 10000))
+        return;
+    mDefaultStepTimeMillis = newDefaultStepTimeMillis;
+}
+
+void RecordingManager::goToNextStep()
+{
+    if(mState != State::Running)
+        return;
+
+    // Restart timer for next step
+    killTimer(mStepTimerId);
+    mStepTimerId = startTimer(mDefaultStepTimeMillis);
+    currentTimerIsCustom = false;
+
+    // Go to next step directly
+    requestStep(requestedDCCStep + 1);
+}
+
+void RecordingManager::setCustomTimeForCurrentStep(int millis)
+{
+    if(mState != State::Running)
+        return;
+
+    // Restart timer for current step
+    killTimer(mStepTimerId);
+    mStepTimerId = startTimer(millis);
+    currentTimerIsCustom = true;
+}
+
+int RecordingManager::startingDCCStep() const
+{
+    return mStartingDCCStep;
+}
+
+void RecordingManager::setStartingDCCStep(int newStartingDCCStep)
+{
+    if(newStartingDCCStep == 0)
+        newStartingDCCStep = 1;
+
+    if(newStartingDCCStep >= 126)
+        return;
+    mStartingDCCStep = newStartingDCCStep;
 }
 
 ReceivedSpeedStepSeries *RecordingManager::recvStepSeries() const
@@ -172,23 +263,42 @@ int RecordingManager::getLocomotiveDCCAddress() const
 
 void RecordingManager::setLocomotiveDCCAddress(int newLocomotiveDCCAddress)
 {
+    if(locomotiveDCCAddress <= 0 || locomotiveDCCAddress > 9999)
+        return;
     locomotiveDCCAddress = newLocomotiveDCCAddress;
 }
 
 void RecordingManager::timerEvent(QTimerEvent *e)
 {
-    if(e->timerId() == mTimerId)
+    if(e->timerId() == mStepTimerId && mStepTimerId)
     {
         requestStep(requestedDCCStep + 1);
+
+        if(currentTimerIsCustom)
+        {
+            // Reset to default timer for next step
+            killTimer(mStepTimerId);
+            mStepTimerId = startTimer(mDefaultStepTimeMillis);
+            currentTimerIsCustom = false;
+        }
+        return;
+    }
+    else if(e->timerId() == mForceStopTimerId)
+    {
+        stopInternal();
         return;
     }
 
     QObject::timerEvent(e);
 }
 
-void RecordingManager::start()
+bool RecordingManager::start()
 {
-    stop();
+    if(mState != State::Stopped)
+    {
+        stop();
+        return false;
+    }
 
     mRecvStepSeries->clear();
     mReqStepSeries->clear();
@@ -197,25 +307,59 @@ void RecordingManager::start()
 
     actualDCCStep = 0;
     requestedDCCStep = 0;
+    mReqStepIsPending = false;
 
-    mTimerId = startTimer(5000);
     mStartTimestamp = -1;
+
+    currentTimerIsCustom = false;
+    mStepTimerId = startTimer(mDefaultStepTimeMillis);
 
     mElapsed.start();
 
-    requestStep(requestedDCCStep + 1);
+    setState(State::Running);
+    requestStep(mStartingDCCStep);
+
+    return true;
 }
 
 void RecordingManager::stop()
 {
-    if(mTimerId)
+    if(mState != State::Running)
+        return;
+
+    if(mStepTimerId)
     {
-        killTimer(mTimerId);
-        mTimerId = 0;
+        killTimer(mStepTimerId);
+        mStepTimerId = 0;
+        currentTimerIsCustom = false;
     }
+
+    setState(State::WaitingToStop);
+
+    // Wait a bit to receive last sensor readings
+    if(mForceStopTimerId)
+    {
+        killTimer(mForceStopTimerId);
+        mForceStopTimerId = 0;
+    }
+    mForceStopTimerId = startTimer(5000);
 
     // Stop the locomotive
     requestStepInternal(0);
+}
+
+void RecordingManager::stopInternal()
+{
+    if(mState != State::WaitingToStop)
+        return;
+
+    if(mForceStopTimerId)
+    {
+        killTimer(mForceStopTimerId);
+        mForceStopTimerId = 0;
+    }
+
+    setState(State::Stopped);
 }
 
 void RecordingManager::emergencyStop()

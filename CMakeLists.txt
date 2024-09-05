@@ -16,6 +16,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(ModelSpeedRegister
         MANUAL_FINALIZATION
 
+        main.cpp
+        mainwindow.cpp
+        mainwindow.h
+        mainwindow.ui
+
         chart/chartview.h chart/chartview.cpp
         chart/chart.h chart/chart.cpp
 
@@ -52,7 +57,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         view/dataseriesgraph.h view/dataseriesgraph.cpp
         view/speedcurvetablemodel.h view/speedcurvetablemodel.cpp
         view/locomotiverecordingview.h view/locomotiverecordingview.cpp
-        view/locospeedcurveview.h view/locospeedcurveview.cpp 
+        view/locospeedcurveview.h view/locospeedcurveview.cpp
+        view/starttestdlg.h view/starttestdlg.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

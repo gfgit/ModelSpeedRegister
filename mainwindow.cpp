@@ -5,6 +5,7 @@
 #include "view/locomotiverecordingview.h"
 
 #include "view/locospeedcurveview.h"
+#include "view/starttestdlg.h"
 
 #include "input/dummyspeedsensor.h"
 #include "commandstation/dummycommandstation.h"
@@ -17,8 +18,8 @@
 
 #include <QTabWidget>
 #include <QCheckBox>
-#include <QSpinBox>
 
+#include <QPointer>
 #include <QInputDialog>
 
 #include "train/locostatuswidget.h"
@@ -301,6 +302,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    testStatusLabel = new QLabel(this);
+    statusBar()->addPermanentWidget(testStatusLabel);
+
     //mSpeedSensor = new ESPAnalogHallSensor(this);
     mSpeedSensor = new DummySpeedSensor(this);
     mCommandStation = new DummyCommandStation;
@@ -318,17 +322,9 @@ MainWindow::MainWindow(QWidget *parent)
     recordingPage->grabGesture(Qt::PanGesture);
     recordingPage->grabGesture(Qt::PinchGesture);
 
-    QVBoxLayout *recBigLay = new QVBoxLayout(recordingPage);
-
-    QHBoxLayout *recLay = new QHBoxLayout;
-    recBigLay->addLayout(recLay);
+    QHBoxLayout *recLay = new QHBoxLayout(recordingPage);
     recLay->addWidget(mRecView);
     recLay->addWidget(mSpeedCurveView);
-
-    QSpinBox *addressSpin = new QSpinBox;
-    addressSpin->setRange(0, 9999);
-    recBigLay->addWidget(addressSpin);
-
 
     mTabWidget->addTab(recordingPage, tr("Recording"));
 
@@ -368,21 +364,31 @@ MainWindow::MainWindow(QWidget *parent)
     mSpeedCurveView->setRecMgr(mRecManager);
     //mSpeedCurveView->setSpeedCurve(mSpeedCurve);
 
-    connect(ui->actionStart, &QAction::triggered, this,
-            [this, addressSpin]()
-            {
-                mRecManager->setLocomotiveDCCAddress(addressSpin->value());
-                //mSpeedSensor->resetTravelledCount();
-                mSpeedSensor->start();
-                mRecManager->start();
-                mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
-            });
+    // Sync label with intial state
+    onRecMgrStateChanged(int(mRecManager->state()));
+
+    connect(mRecManager, &RecordingManager::stateChanged,
+            this, &MainWindow::onRecMgrStateChanged);
+
+    connect(ui->actionStart, &QAction::triggered,
+            this, &MainWindow::startTest);
 
     connect(ui->actionStop, &QAction::triggered, this,
             [this]()
             {
-                mSpeedSensor->stop();
                 mRecManager->stop();
+            });
+
+    connect(ui->actionNext_Step, &QAction::triggered, this,
+            [this]()
+            {
+                mRecManager->goToNextStep();
+            });
+
+    connect(ui->actionOther_5_seconds, &QAction::triggered, this,
+            [this]()
+            {
+                mRecManager->setCustomTimeForCurrentStep(5000);
             });
 
     connect(ui->actionEmergency_Stop, &QAction::triggered, this,
@@ -454,3 +460,52 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::startTest()
+{
+    QPointer<StartTestDlg> dlg = new StartTestDlg(this);
+    dlg->setLocoAddress(mRecManager->getLocomotiveDCCAddress());
+    dlg->setDefaultStepTime(mRecManager->defaultStepTimeMillis());
+    dlg->setStartingDCCStep(mRecManager->startingDCCStep());
+
+    if(dlg->exec() != QDialog::Accepted || !dlg)
+        return;
+
+    mRecManager->setLocomotiveDCCAddress(dlg->getLocoAddress());
+    mRecManager->setDefaultStepTimeMillis(dlg->getDefaultStepTime());
+    mRecManager->setStartingDCCStep(dlg->getStartingDCCStep());
+
+    //mSpeedSensor->resetTravelledCount();
+    mSpeedSensor->start();
+
+    if(mRecManager->start())
+    {
+        mSpeedCurveView->setTargedSpeedCurve(mSpeedSensor->speedCurve());
+    }
+    else
+    {
+        mSpeedSensor->stop();
+    }
+}
+
+void MainWindow::onRecMgrStateChanged(int /*newState*/)
+{
+    QString stateName;
+
+    switch(mRecManager->state())
+    {
+    case RecordingManager::State::Stopped:
+        stateName = tr("Test Stopped");
+        break;
+    case RecordingManager::State::Running:
+        stateName = tr("Test RUNNING");
+        break;
+    case RecordingManager::State::WaitingToStop:
+        stateName = tr("Stopping Test...");
+        break;
+    }
+
+    testStatusLabel->setText(stateName);
+
+    if(mRecManager->state() == RecordingManager::State::Stopped)
+        mSpeedSensor->stop();
+}

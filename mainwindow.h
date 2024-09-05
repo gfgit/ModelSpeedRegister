@@ -18,6 +18,8 @@ class ICommandStation;
 
 class QTabWidget;
 
+class QLabel;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,6 +27,10 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+private slots:
+    void startTest();
+    void onRecMgrStateChanged(int newState);
 
 private:
     Ui::MainWindow *ui;
@@ -39,5 +45,7 @@ private:
     ICommandStation *mCommandStation;
 
     QTabWidget *mTabWidget;
+
+    QLabel *testStatusLabel;
 };
 #endif // MAINWINDOW_H
