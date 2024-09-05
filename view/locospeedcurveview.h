@@ -7,9 +7,13 @@
 
 class Chart;
 class ChartView;
-class QValueAxis;
 
-class LocoSpeedCurve;
+class QTableView;
+class SpeedCurveTableModel;
+
+class QSplitter;
+
+class RecordingManager;
 
 class LocoSpeedCurveView : public QWidget
 {
@@ -17,26 +21,22 @@ class LocoSpeedCurveView : public QWidget
 public:
     explicit LocoSpeedCurveView(QWidget *parent = nullptr);
 
-    LocoSpeedCurve *speedCurve() const;
-    void setSpeedCurve(LocoSpeedCurve *newSpeedCurve);
-
     void setTargedSpeedCurve(const QVector<double>& targetSpeedCurve);
 
-private slots:
-    void onCurveChanged(int step, const QList<double> &values);
+    RecordingManager *recMgr() const;
+    void setRecMgr(RecordingManager *newRecMgr);
 
 private:
-    LocoSpeedCurve *mSpeedCurve = nullptr;
-
     Chart *mChart;
     ChartView *mChartView;
 
     QLineSeries mTargetSpeedCurve;
-    QLineSeries mSpeedCurveAvg;
-    QScatterSeries mSpeedCurvePoints;
+    RecordingManager *mRecMgr = nullptr;
 
-    QValueAxis *mAxisX;
-    QValueAxis *mAxisY;
+    QTableView *mFilterView;
+    SpeedCurveTableModel *mFilterModel;
+
+    QSplitter *mSplitter;
 };
 
 #endif // LOCOSPEEDCURVEVIEW_H

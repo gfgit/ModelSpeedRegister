@@ -285,7 +285,7 @@ void TotalStepAverageSeries::setTravelledSource(IDataSeries *newSource)
 
 DataSeriesType TotalStepAverageSeries::getType() const
 {
-    return DataSeriesType::MovingAverage;
+    return DataSeriesType::TotalStepAverage;
 }
 
 int TotalStepAverageSeries::getPointCount() const

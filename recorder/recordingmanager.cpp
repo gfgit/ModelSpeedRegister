@@ -1,7 +1,5 @@
 #include "recordingmanager.h"
 
-#include "locomotiverecording.h"
-
 #include "../input/ispeedsensor.h"
 #include "../commandstation/icommandstation.h"
 
@@ -10,14 +8,15 @@
 #include "series/receivedspeedstepseries.h"
 #include "series/rawsensordataseries.h"
 #include "series/sensortravelleddistanceseries.h"
+#include "series/dataseriescurvemapping.h"
 
 #include <QTimerEvent>
+
+#include <QDebug>
 
 RecordingManager::RecordingManager(QObject *parent)
     : QObject{parent}
 {
-    m_currentRecording = new LocomotiveRecording(this);
-
     mReqStepSeries = new RequestedSpeedStepSeries(this);
     registerSeries(mReqStepSeries);
 
@@ -38,9 +37,6 @@ RecordingManager::~RecordingManager()
 
 void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelledMillimeters, qint64 timestampMilliSec)
 {
-    if(!m_currentRecording)
-        return;
-
     if(mStartTimestamp == -1)
     {
         // Reset time reference
@@ -54,16 +50,7 @@ void RecordingManager::onNewSpeedReading(double metersPerSecond, double travelle
 
     qDebug() << "READ:" << timestampMilliSec << metersPerSecond << travelledMillimeters;
 
-    RecordingItem item;
-    item.timestampMilliSec = timestampMilliSec;
-    item.actualSpeedStep = actualDCCStep;
-    item.requestedSpeedStep = requestedDCCStep;
-    item.metersPerSecond = metersPerSecond;
-    item.metersPerSecondAvg = 0; // Will be calculated later
-
     //TODO: direction
-
-    m_currentRecording->addItem(item);
 }
 
 void RecordingManager::onLocomotiveSpeedFeedback(int address, int speedStep, LocomotiveDirection direction)
@@ -85,6 +72,22 @@ void RecordingManager::onSeriesDestroyed(QObject *s)
     IDataSeries *series = static_cast<IDataSeries *>(s);
     mSeries.removeOne(series);
     emit seriesUnregistered(series);
+}
+
+void RecordingManager::requestStepInternal(int step)
+{
+    int oldStep = requestedDCCStep;
+    requestedDCCStep = step;
+
+    if(mCommandStation)
+    {
+        mReqStepSeries->addPoint(oldStep, mElapsed.elapsed() / 1000.0);
+        mReqStepSeries->addPoint(requestedDCCStep, mElapsed.elapsed() / 1000.0);
+
+        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
+                                            requestedDCCStep,
+                                            LocomotiveDirection::Forward);
+    }
 }
 
 ReceivedSpeedStepSeries *RecordingManager::recvStepSeries() const
@@ -109,23 +112,13 @@ SensorTravelledDistanceSeries *RecordingManager::sensorTravelledSeries() const
 
 void RecordingManager::requestStep(int step)
 {
-    int oldStep = requestedDCCStep;
-    requestedDCCStep = step;
-    if(requestedDCCStep > 126)
+    if(step > 126)
     {
         stop();
         return;
     }
 
-    if(mCommandStation)
-    {
-        mReqStepSeries->addPoint(oldStep, mElapsed.elapsed() / 1000.0);
-        mReqStepSeries->addPoint(requestedDCCStep, mElapsed.elapsed() / 1000.0);
-
-        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
-                                            requestedDCCStep,
-                                            LocomotiveDirection::Forward);
-    }
+    requestStepInternal(step);
 }
 
 QVector<IDataSeries *> RecordingManager::getSeries() const
@@ -142,6 +135,23 @@ void RecordingManager::registerSeries(IDataSeries *s)
 
     mSeries.append(s);
     emit seriesRegistered(s);
+
+    switch (s->getType())
+    {
+    case DataSeriesType::SensorRawData:
+    case DataSeriesType::MovingAverage:
+    case DataSeriesType::TotalStepAverage:
+    {
+        // Inject a mapping
+        DataSeriesCurveMapping *mapping = new DataSeriesCurveMapping(this);
+        mapping->setRecvStep(mRecvStepSeries);
+        mapping->setSource(s);
+        registerSeries(mapping);
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 void RecordingManager::unregisterSeries(IDataSeries *s)
@@ -165,11 +175,6 @@ void RecordingManager::setLocomotiveDCCAddress(int newLocomotiveDCCAddress)
     locomotiveDCCAddress = newLocomotiveDCCAddress;
 }
 
-LocomotiveRecording *RecordingManager::currentRecording() const
-{
-    return m_currentRecording;
-}
-
 void RecordingManager::timerEvent(QTimerEvent *e)
 {
     if(e->timerId() == mTimerId)
@@ -189,8 +194,6 @@ void RecordingManager::start()
     mReqStepSeries->clear();
     mRawSensorSeries->clear();
     mSensorTravelledSeries->clear();
-
-    m_currentRecording->clear();
 
     actualDCCStep = 0;
     requestedDCCStep = 0;
@@ -212,13 +215,7 @@ void RecordingManager::stop()
     }
 
     // Stop the locomotive
-    requestedDCCStep = 0;
-    if(mCommandStation)
-    {
-        mCommandStation->setLocomotiveSpeed(locomotiveDCCAddress,
-                                            requestedDCCStep,
-                                            LocomotiveDirection::Forward);
-    }
+    requestStepInternal(0);
 }
 
 void RecordingManager::emergencyStop()

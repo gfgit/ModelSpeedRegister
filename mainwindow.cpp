@@ -4,7 +4,6 @@
 #include "recorder/recordingmanager.h"
 #include "view/locomotiverecordingview.h"
 
-#include "recorder/locospeedcurve.h"
 #include "view/locospeedcurveview.h"
 
 #include "input/dummyspeedsensor.h"
@@ -355,8 +354,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     mRecManager = new RecordingManager(this);
-    mSpeedCurve = new LocoSpeedCurve(this);
-    mSpeedCurve->setRecording(mRecManager->currentRecording());
 
     connect(mCommandStation, &DummyCommandStation::locomotiveSpeedFeedback, mSpeedSensor,
             [sensor = mSpeedSensor](int /*address*/, int speedStep)
@@ -368,7 +365,8 @@ MainWindow::MainWindow(QWidget *parent)
     mRecManager->setSpeedSensor(mSpeedSensor);
 
     mRecView->setRecMgr(mRecManager);
-    mSpeedCurveView->setSpeedCurve(mSpeedCurve);
+    mSpeedCurveView->setRecMgr(mRecManager);
+    //mSpeedCurveView->setSpeedCurve(mSpeedCurve);
 
     connect(ui->actionStart, &QAction::triggered, this,
             [this, addressSpin]()

@@ -10,7 +10,6 @@ QT_END_NAMESPACE
 class RecordingManager;
 class LocomotiveRecordingView;
 
-class LocoSpeedCurve;
 class LocoSpeedCurveView;
 
 class DummySpeedSensor;
@@ -33,7 +32,6 @@ private:
     LocomotiveRecordingView *mRecView;
     RecordingManager *mRecManager;
 
-    LocoSpeedCurve *mSpeedCurve;
     LocoSpeedCurveView *mSpeedCurveView;
 
     // ESPAnalogHallSensor *mSpeedSensor;

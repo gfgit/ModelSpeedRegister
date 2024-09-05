@@ -14,7 +14,8 @@ enum DataSeriesType
     SensorRawData,
     TravelledDistance,
     MovingAverage,
-    TotalStepAverage
+    TotalStepAverage,
+    CurveMapping
 };
 
 static const char* DataSeriesType_names[] =
@@ -23,8 +24,10 @@ static const char* DataSeriesType_names[] =
     QT_TRANSLATE_NOOP("IDataSeries", "RequestedSpeedStep"),
     QT_TRANSLATE_NOOP("IDataSeries", "ReceivedSpeedStep"),
     QT_TRANSLATE_NOOP("IDataSeries", "SensorRawData"),
+    QT_TRANSLATE_NOOP("IDataSeries", "TravelledDistance"),
     QT_TRANSLATE_NOOP("IDataSeries", "MovingAverage"),
-    QT_TRANSLATE_NOOP("IDataSeries", "TotalStepAverage")
+    QT_TRANSLATE_NOOP("IDataSeries", "TotalStepAverage"),
+    QT_TRANSLATE_NOOP("IDataSeries", "CurveMapping")
 };
 
 enum DataSeriesAction

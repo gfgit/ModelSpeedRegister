@@ -15,8 +15,6 @@ class ReceivedSpeedStepSeries;
 class RawSensorDataSeries;
 class SensorTravelledDistanceSeries;
 
-class LocomotiveRecording;
-
 class RecordingManager : public QObject
 {
     Q_OBJECT
@@ -29,8 +27,6 @@ public:
 
     ISpeedSensor *speedSensor() const;
     void setSpeedSensor(ISpeedSensor *newSpeedSensor);
-
-    LocomotiveRecording *currentRecording() const;
 
     void timerEvent(QTimerEvent *e) override;
 
@@ -68,14 +64,15 @@ private slots:
     void onSeriesDestroyed(QObject *s);
 
 private:
+    void requestStepInternal(int step);
+
+private:
     ICommandStation *mCommandStation = nullptr;
     ISpeedSensor *mSpeedSensor = nullptr;
 
     int locomotiveDCCAddress = 47;
     int requestedDCCStep = 0;
     int actualDCCStep = 0;
-
-    LocomotiveRecording *m_currentRecording;
 
     int mTimerId = 0;
     qint64 mStartTimestamp = -1;

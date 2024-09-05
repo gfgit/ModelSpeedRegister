@@ -26,7 +26,7 @@ void DummySpeedSensor::timerEvent(QTimerEvent *e)
         travelledMillimeters += newTravelled;
 
         double currentSpeed = mSpeedCurve.at(mCurrentStep);
-        const double MAX_OSCILLATION = 4.0;
+        const double MAX_OSCILLATION = 0.2;
         double noise = QRandomGenerator::global()->bounded(MAX_OSCILLATION) - MAX_OSCILLATION / 2;
         currentSpeed += noise;
         lastSpeedMetersPerSecond = currentSpeed;
@@ -70,7 +70,7 @@ void DummySpeedSensor::generateRandomSpeedCurve()
 {
     mSpeedCurve.resize(127);
     mSpeedCurve[0] = 0;
-    const double MAX_INCREMENT = 8.0;
+    const double MAX_INCREMENT = 0.3;
 
     for(int i = 1; i < 127; i++)
     {
