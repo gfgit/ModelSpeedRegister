@@ -10,6 +10,7 @@ class IDataSeries;
 
 class Chart;
 class QValueAxis;
+class QLineSeries;
 
 class RecordingManager;
 
@@ -44,14 +45,35 @@ public:
         VisibilityCheckBox = 0
     };
 
+    enum ColumnType
+    {
+        Invalid = 0,
+        TestSeries = 1,
+        StoredSpeedCurve = 2
+    };
+
     QColor getSeriesColor(int column) const;
     void setSeriesColor(int column, const QColor& color);
+
+    QString getSeriesName(int column) const;
+    void setSeriesName(int column, const QString& newName);
+
+    ColumnType getColumnType(int column) const;
 
     bool axisRangeFollowsChanges() const;
     void setAxisRangeFollowsChanges(bool newAxisRangeFollowsChanges);
 
     void setAxisRange(const QRectF &r);
     QRectF getAxisRange() const;
+
+    int currentEditCurve() const;
+    void setCurrentEditCurve(int curveToEdit);
+
+    QLineSeries *addNewCurve(const QString& name);
+    void removeCurveAt(int column);
+    QLineSeries *getCurveAt(int column) const;
+
+    void storeIndexValueInCurrentCurve(const QModelIndex& idx);
 
 private slots:
     void onSeriesRegistered(IDataSeries *s);
@@ -91,7 +113,9 @@ private:
         return step;
     }
 
-    int getFirstIndexForStep(DataSeriesGraph *s, int step) const;
+    int getFirstIndexForStep(QLineSeries *s, int step) const;
+
+    QLineSeries *getSeriesAtColumn(int col) const;
 
 private:
     RecordingManager *mRecMgr;
@@ -100,6 +124,7 @@ private:
     QValueAxis *mStepAxis;
     QValueAxis *mSpeedAxis;
 
+    // Series coming from Test, gets cleared on start
     struct DataSeriesColumn
     {
         DataSeriesGraph *mGraph;
@@ -107,11 +132,16 @@ private:
     };
     QVector<DataSeriesColumn> mSeries;
 
+    // Stored curves, these are persistent
+    QVector<QLineSeries *> mCurves;
+
     State mState = Normal;
     int mRecalculationTimerId = 0;
 
     int mStepStart[126 + 1] = {0};
     int mLastRow = 0;
+
+    int mCurrentEditCurve = -1;
 
     bool mAxisRangeFollowsChanges = true;
 };

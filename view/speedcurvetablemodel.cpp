@@ -41,6 +41,9 @@ SpeedCurveTableModel::~SpeedCurveTableModel()
 
     // Item mGraph is deleted by QChart
     mSeries.clear();
+
+    // Items are deleted by QChart
+    mCurves.clear();
 }
 
 QVariant SpeedCurveTableModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -50,8 +53,12 @@ QVariant SpeedCurveTableModel::headerData(int section, Qt::Orientation orientati
 
     if(orientation == Qt::Horizontal)
     {
-        if(role == Qt::DisplayRole && section < mSeries.size())
-            return mSeries.at(section).mGraph->name();
+        if(role == Qt::DisplayRole)
+        {
+            QLineSeries *s = getSeriesAtColumn(section);
+            if(s)
+                return s->name();
+        }
     }
     else
     {
@@ -101,7 +108,7 @@ int SpeedCurveTableModel::columnCount(const QModelIndex &parent) const
     if(mState == State::WaitingForRecalculation)
         return 1;
 
-    return mSeries.size();
+    return mSeries.size() + mCurves.size();
 }
 
 QVariant SpeedCurveTableModel::data(const QModelIndex &idx, int role) const
@@ -119,10 +126,12 @@ QVariant SpeedCurveTableModel::data(const QModelIndex &idx, int role) const
         return QVariant();
     }
 
-    if (idx.row() > mLastRow || idx.column() >= mSeries.size())
+    if (idx.row() > mLastRow)
         return QVariant();
 
-    DataSeriesGraph *series = mSeries.at(idx.column()).mGraph;
+    QLineSeries *series =  getSeriesAtColumn(idx.column());
+    if(!series)
+        return QVariant();
 
     if(idx.row() == SpecialRows::VisibilityCheckBox)
     {
@@ -156,6 +165,24 @@ QVariant SpeedCurveTableModel::data(const QModelIndex &idx, int role) const
 
     if(role == Qt::DisplayRole)
         return series->at(indexInSeries).y();
+    else if(role == Qt::BackgroundRole)
+    {
+        if(mCurrentEditCurve != -1 && idx.column() != mCurrentEditCurve)
+        {
+            // Put a red background when current editing curve
+            // has no value for current step
+            QLineSeries *editCurve = getSeriesAtColumn(mCurrentEditCurve);
+            if(qFuzzyCompare(editCurve->at(step).y(), -1))
+            {
+                return QColor(255, 0, 0, 100);
+            }
+        }
+        else if(mCurrentEditCurve == idx.column())
+        {
+            // Light green for current edit curve
+            return QColor(0, 255, 0, 100);
+        }
+    }
 
     // FIXME: Implement other roles
     return QVariant();
@@ -166,10 +193,12 @@ bool SpeedCurveTableModel::setData(const QModelIndex &idx, const QVariant &value
     if(mState == State::WaitingForRecalculation)
         return false;
 
-    if (idx.row() > mLastRow || idx.column() >= mSeries.size())
+    if (idx.row() > mLastRow)
         return false;
 
-    DataSeriesGraph *series = mSeries.at(idx.column()).mGraph;
+    QLineSeries *series = getSeriesAtColumn(idx.column());
+    if(!series)
+        return false;
 
     if(idx.row() == SpecialRows::VisibilityCheckBox && role == Qt::CheckStateRole)
     {
@@ -204,7 +233,7 @@ RecordingManager *SpeedCurveTableModel::recMgr() const
 
 void SpeedCurveTableModel::setRecMgr(RecordingManager *newRecMgr)
 {
-    beginResetModel();
+    beginSetState(State::WaitingForRecalculation);
 
     if(mRecMgr)
     {
@@ -240,25 +269,61 @@ void SpeedCurveTableModel::setRecMgr(RecordingManager *newRecMgr)
         }
     }
 
-    endResetModel();
+    endSetState();
 }
 
 QColor SpeedCurveTableModel::getSeriesColor(int column) const
 {
-    if(column < 0 || column >= mSeries.count())
+    QLineSeries *series = getSeriesAtColumn(column);
+    if(!series)
         return QColor();
 
-    return mSeries.at(column).mGraph->color();
+    return series->color();
 }
 
 void SpeedCurveTableModel::setSeriesColor(int column, const QColor &color)
 {
-    if(column < 0 || column >= mSeries.count())
+    QLineSeries *series = getSeriesAtColumn(column);
+    if(!series)
         return;
 
-    mSeries.at(column).mGraph->setColor(color);
+    series->setColor(color);
     QModelIndex idx = index(SpecialRows::VisibilityCheckBox, column);
     emit dataChanged(idx, idx);
+}
+
+QString SpeedCurveTableModel::getSeriesName(int column) const
+{
+    QLineSeries *series = getSeriesAtColumn(column);
+    if(!series)
+        return QString();
+
+    return series->name();
+}
+
+void SpeedCurveTableModel::setSeriesName(int column, const QString &newName)
+{
+    QLineSeries *series = getSeriesAtColumn(column);
+    if(!series)
+        return;
+
+    series->setName(newName);
+    QModelIndex idx = index(SpecialRows::VisibilityCheckBox, column);
+    emit dataChanged(idx, idx);
+}
+
+SpeedCurveTableModel::ColumnType SpeedCurveTableModel::getColumnType(int column) const
+{
+    if(column < 0)
+        return ColumnType::Invalid;
+
+    if(column < mSeries.size())
+        return ColumnType::TestSeries;
+
+    else if(column < mSeries.size() + mCurves.size())
+        return ColumnType::StoredSpeedCurve;
+
+    return ColumnType::Invalid;
 }
 
 void SpeedCurveTableModel::onSeriesRegistered(IDataSeries *s)
@@ -342,6 +407,9 @@ void SpeedCurveTableModel::beginSetState(State newState)
     if(newState == State::WaitingForRecalculation && mState == newState)
         return;
 
+    // Reset current editing
+    setCurrentEditCurve(-1);
+
     if(mRecalculationTimerId)
     {
         killTimer(mRecalculationTimerId);
@@ -355,6 +423,8 @@ void SpeedCurveTableModel::beginSetState(State newState)
     {
         mState = State::BeginWaitInternal;
     }
+
+    endResetModel();
 }
 
 void SpeedCurveTableModel::endSetState()
@@ -365,6 +435,7 @@ void SpeedCurveTableModel::endSetState()
         return;
     }
 
+    beginResetModel();
     if(mState == State::BeginWaitInternal)
     {
         mState = State::WaitingForRecalculation;
@@ -419,7 +490,7 @@ void SpeedCurveTableModel::recalculate()
     mLastRow--;
 }
 
-int SpeedCurveTableModel::getFirstIndexForStep(DataSeriesGraph *s, int step) const
+int SpeedCurveTableModel::getFirstIndexForStep(QLineSeries *s, int step) const
 {
     int i = 0;
     for(; i < s->count(); i++)
@@ -431,6 +502,126 @@ int SpeedCurveTableModel::getFirstIndexForStep(DataSeriesGraph *s, int step) con
     }
 
     return -1;
+}
+
+QLineSeries *SpeedCurveTableModel::getSeriesAtColumn(int col) const
+{
+    if(col < 0)
+        return nullptr;
+
+    if(col < mSeries.size())
+        return mSeries.at(col).mGraph;
+
+    else if(col < mSeries.size() + mCurves.size())
+        return mCurves.at(col - mSeries.size());
+
+    return nullptr;
+}
+
+int SpeedCurveTableModel::currentEditCurve() const
+{
+    return mCurrentEditCurve;
+}
+
+void SpeedCurveTableModel::setCurrentEditCurve(int curveToEdit)
+{
+    if(curveToEdit == mCurrentEditCurve)
+        return;
+
+    if(curveToEdit != -1 &&
+         getColumnType(curveToEdit) != ColumnType::StoredSpeedCurve)
+        return;
+
+    mCurrentEditCurve = curveToEdit;
+
+    // Refresh views
+    emit dataChanged(index(0, 0), index(mLastRow, mSeries.size() + mCurves.size() - 1));
+}
+
+QLineSeries *SpeedCurveTableModel::addNewCurve(const QString &name)
+{
+    QLineSeries *curve = new QLineSeries(this);
+    curve->setName(name);
+
+    // Fill in null values for each step
+    for(int step = 0; step <= 126; step++)
+        curve->append(step, -1);
+
+    mChart->addSeries(curve);
+    curve->attachAxis(mStepAxis);
+    curve->attachAxis(mSpeedAxis);
+
+    int col = mSeries.size() + mCurves.size();
+    beginInsertColumns(QModelIndex(), col, col);
+    mCurves.append(curve);
+    endInsertColumns();
+
+    return curve;
+}
+
+void SpeedCurveTableModel::removeCurveAt(int column)
+{
+    if(getColumnType(column) != ColumnType::StoredSpeedCurve)
+        return; // Do not remove Test Series
+
+    setCurrentEditCurve(-1);
+
+    beginRemoveColumns(QModelIndex(), column, column);
+
+    delete mCurves.takeAt(column - mSeries.size());
+
+    endRemoveColumns();
+}
+
+QLineSeries *SpeedCurveTableModel::getCurveAt(int column) const
+{
+    if(getColumnType(column) != ColumnType::StoredSpeedCurve)
+        return nullptr;
+
+    return mCurves.at(column - mSeries.size());
+}
+
+void SpeedCurveTableModel::storeIndexValueInCurrentCurve(const QModelIndex &idx)
+{
+    if(idx.row() == SpecialRows::VisibilityCheckBox)
+        return;
+
+    QLineSeries *series =  getSeriesAtColumn(idx.column());
+    if(!series)
+        return;
+
+    QLineSeries *currentEditSeries =  getSeriesAtColumn(mCurrentEditCurve);
+    if(!currentEditSeries)
+        return;
+
+    int step = getStepForRow(idx.row());
+    if(step < 0)
+        return;
+
+    int indexInSeries = idx.row() - mStepStart[step];
+
+    int baseStepIndex = getFirstIndexForStep(series, step);
+    if(baseStepIndex < 0)
+        return;
+
+    int lastStepIndex = getFirstIndexForStep(series, step + 1);
+
+    indexInSeries += baseStepIndex;
+    if(indexInSeries >= series->count() || indexInSeries >= lastStepIndex)
+        return;
+
+    // Store selected point into current edit curve
+    QPointF pt = series->at(indexInSeries);
+    currentEditSeries->replace(step, pt);
+
+    // Refresh all rows of this step
+    int stepStart = mStepStart[step];
+    int stepEnd = mLastRow;
+    if(step < 126)
+        stepEnd = mStepStart[step + 1] - 1;
+
+    emit dataChanged(index(stepStart, 0),
+                     index(stepEnd, mSeries.size() + mCurves.size() - 1));
 }
 
 bool SpeedCurveTableModel::axisRangeFollowsChanges() const

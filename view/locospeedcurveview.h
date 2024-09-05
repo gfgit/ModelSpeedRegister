@@ -26,6 +26,9 @@ public:
     RecordingManager *recMgr() const;
     void setRecMgr(RecordingManager *newRecMgr);
 
+private slots:
+    void onTableContextMenu(const QPoint& pos);
+
 private:
     Chart *mChart;
     ChartView *mChartView;
