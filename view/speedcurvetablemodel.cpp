@@ -160,7 +160,9 @@ QVariant SpeedCurveTableModel::data(const QModelIndex &idx, int role) const
     int lastStepIndex = getFirstIndexForStep(series, step + 1);
 
     indexInSeries += baseStepIndex;
-    if(indexInSeries >= series->count() || indexInSeries >= lastStepIndex)
+    if(indexInSeries >= series->count() ||
+            (indexInSeries >= lastStepIndex
+             && lastStepIndex != -1))
         return QVariant();
 
     if(role == Qt::DisplayRole)
@@ -581,13 +583,47 @@ QLineSeries *SpeedCurveTableModel::getCurveAt(int column) const
     return mCurves.at(column - mSeries.size());
 }
 
-void SpeedCurveTableModel::storeIndexValueInCurrentCurve(const QModelIndex &idx)
+QPointF SpeedCurveTableModel::getValueAtIdx(const QModelIndex &idx) const
 {
+    QPointF invalid(-1, -1);
+
     if(idx.row() == SpecialRows::VisibilityCheckBox)
-        return;
+        return invalid;
 
     QLineSeries *series =  getSeriesAtColumn(idx.column());
     if(!series)
+        return invalid;
+
+    QLineSeries *currentEditSeries =  getSeriesAtColumn(mCurrentEditCurve);
+    if(!currentEditSeries)
+        return invalid;
+
+    int step = getStepForRow(idx.row());
+    if(step < 0)
+        return invalid;
+
+    int indexInSeries = idx.row() - mStepStart[step];
+
+    int baseStepIndex = getFirstIndexForStep(series, step);
+    if(baseStepIndex < 0)
+        return invalid;
+
+    int lastStepIndex = getFirstIndexForStep(series, step + 1);
+
+    indexInSeries += baseStepIndex;
+    if(indexInSeries >= series->count() || indexInSeries >= lastStepIndex)
+        return invalid;
+
+    QPointF pt = series->at(indexInSeries);
+    return pt;
+}
+
+void SpeedCurveTableModel::storeValueInCurrentCurve(const QModelIndex &idx, const QPointF &val)
+{
+    if(val.x() < 0)
+        return;
+
+    if(idx.row() == SpecialRows::VisibilityCheckBox)
         return;
 
     QLineSeries *currentEditSeries =  getSeriesAtColumn(mCurrentEditCurve);
@@ -598,21 +634,8 @@ void SpeedCurveTableModel::storeIndexValueInCurrentCurve(const QModelIndex &idx)
     if(step < 0)
         return;
 
-    int indexInSeries = idx.row() - mStepStart[step];
-
-    int baseStepIndex = getFirstIndexForStep(series, step);
-    if(baseStepIndex < 0)
-        return;
-
-    int lastStepIndex = getFirstIndexForStep(series, step + 1);
-
-    indexInSeries += baseStepIndex;
-    if(indexInSeries >= series->count() || indexInSeries >= lastStepIndex)
-        return;
-
     // Store selected point into current edit curve
-    QPointF pt = series->at(indexInSeries);
-    currentEditSeries->replace(step, pt);
+    currentEditSeries->replace(step, val);
 
     // Refresh all rows of this step
     int stepStart = mStepStart[step];

@@ -73,7 +73,8 @@ public:
     void removeCurveAt(int column);
     QLineSeries *getCurveAt(int column) const;
 
-    void storeIndexValueInCurrentCurve(const QModelIndex& idx);
+    QPointF getValueAtIdx(const QModelIndex& idx) const;
+    void storeValueInCurrentCurve(const QModelIndex& idx, const QPointF &val);
 
 private slots:
     void onSeriesRegistered(IDataSeries *s);

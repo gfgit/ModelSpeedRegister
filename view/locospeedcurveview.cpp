@@ -114,13 +114,47 @@ void LocoSpeedCurveView::onTableContextMenu(const QPoint &pos)
 
     QPointer<QMenu> menu = new QMenu(this);
 
+    QAction *actSetVal = menu->addAction(tr("Use this Value"),
+                                         this,
+                                         [this, idx]()
+    {
+        QPointF val = mFilterModel->getValueAtIdx(idx);
+        mFilterModel->storeValueInCurrentCurve(idx, val);
+    });
+    actSetVal->setVisible(currEdit != -1);
+
+    if(currEdit == idx.column())
+    {
+        menu->addAction(tr("Custom Value"),
+                        this,
+                        [this, idx]()
+        {
+            QPointF val = mFilterModel->getValueAtIdx(idx);
+            if(val.x() < 0)
+                return;
+
+            val.ry() = QInputDialog::getDouble(this,
+                                               tr("Set Custom Value"),
+                                               tr("Value:"),
+                                               val.y());
+            if(val.ry() < 0 || qFuzzyIsNull(val.ry()))
+                val.ry() = -1;
+            mFilterModel->storeValueInCurrentCurve(idx, val);
+        });
+    }
+
+    if(currEdit != -1)
+        menu->addSeparator();
+
     menu->addAction(tr("Change Name"),
                     this, [this, idx]()
     {
         QString name = mFilterModel->getSeriesName(idx.column());
         name = QInputDialog::getText(this,
                                      tr("Choose Name"),
-                                     tr("Series Name:"));
+                                     tr("Series Name:"),
+                                     QLineEdit::Normal,
+                                     name);
         name = name.simplified();
         if(!name.isEmpty())
             mFilterModel->setSeriesName(idx.column(), name);
@@ -156,13 +190,15 @@ void LocoSpeedCurveView::onTableContextMenu(const QPoint &pos)
 
     actRem->setEnabled(colType == SpeedCurveTableModel::ColumnType::StoredSpeedCurve);
 
-    QAction *actSetVal = menu->addAction(tr("Use this Value"),
-                                         this,
-                                         [this, idx]()
+    menu->addAction(tr("New Curve"),
+                    this, [this]()
     {
-        mFilterModel->storeIndexValueInCurrentCurve(idx);
+        QString name;
+        name = QInputDialog::getText(this,
+                                     tr("Add New Curve"),
+                                     tr("Name:"));
+        mFilterModel->addNewCurve(name);
     });
-    actSetVal->setEnabled(currEdit != -1);
 
     menu->exec(mFilterView->viewport()->mapToGlobal(pos));
     if(!menu)
