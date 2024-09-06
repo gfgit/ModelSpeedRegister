@@ -1,12 +1,16 @@
 #ifndef LOCOSTATUSWIDGET_H
 #define LOCOSTATUSWIDGET_H
 
+#include <QWidget>
+
 #include "locospeedmapping.h"
-#include <QLabel>
 
 class Locomotive;
 
-class LocoStatusWidget : public QLabel
+class QLabel;
+class QSpinBox;
+
+class LocoStatusWidget : public QWidget
 {
     Q_OBJECT
 public:
@@ -19,6 +23,9 @@ private slots:
 
 private:
     Locomotive *mLocomotive = nullptr;
+
+    QLabel *mLabel;
+    QSpinBox *mSpinBox;
 };
 
 #endif // LOCOSTATUSWIDGET_H

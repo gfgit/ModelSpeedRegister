@@ -2,12 +2,35 @@
 
 #include "locomotive.h"
 
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QSpinBox>
+
 LocoStatusWidget::LocoStatusWidget(QWidget *parent)
-    : QLabel{parent}
+    : QWidget{parent}
 {
+    QVBoxLayout *lay = new QVBoxLayout(this);
+
+    mLabel = new QLabel;
+    lay->addWidget(mLabel);
+
+    mSpinBox = new QSpinBox;
+    mSpinBox->setRange(0, 126);
+    lay->addWidget(mSpinBox);
+
+    connect(mSpinBox, &QSpinBox::valueChanged, this,
+            [this](int v)
+    {
+        if(!mLocomotive)
+            return;
+
+        mLocomotive->driveLoco(v, mLocomotive->direction());
+    });
+
     QFont f = font();
     f.setPointSize(20);
-    setFont(f);
+    mLabel->setFont(f);
+    mSpinBox->setFont(f);
 
     // Refresh text
     updateStatus();
@@ -50,7 +73,11 @@ void LocoStatusWidget::updateStatus()
 
     const double realKmH = metersPerSecond * 87.0 * 3.6;
 
-    setText(QLatin1String("%1\n"
+    mSpinBox->blockSignals(true);
+    mSpinBox->setValue(speedStep);
+    mSpinBox->blockSignals(false);
+
+    mLabel->setText(QLatin1String("%1\n"
                           "%2 %3 - %4 %5\n"
                           "%6 m/s\n"
                           "%7 km/h")

@@ -18,6 +18,7 @@
 
 #include <QTabWidget>
 #include <QCheckBox>
+#include <QLabel>
 
 #include <QPointer>
 #include <QInputDialog>
@@ -433,7 +434,7 @@ MainWindow::MainWindow(QWidget *parent)
     mPool->setCommandStation(mCommandStation);
 
     Locomotive *locoD753 = new Locomotive(mPool);
-    locoD753->setAddress(47);
+    locoD753->setAddress(40);
     locoD753->setSpeedMapping(mappingD753);
     mPool->addLoco(locoD753);
 
