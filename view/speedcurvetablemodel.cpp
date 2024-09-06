@@ -19,13 +19,17 @@ SpeedCurveTableModel::SpeedCurveTableModel(Chart *chart, QObject *parent)
     mStepAxis->setRange(0, 126);
     mStepAxis->setLabelFormat("%.0f");
     mStepAxis->setTitleText("Step");
-    mStepAxis->setTickType(QValueAxis::TicksFixed);
-    mStepAxis->setTickInterval(1);
+    mStepAxis->setTickType(QValueAxis::TicksDynamic);
+    mStepAxis->setTickInterval(10);
+    mStepAxis->setMinorTickCount(4);
 
     mSpeedAxis = new QValueAxis(this);
-    mSpeedAxis->setRange(0, 1.5);
+    mSpeedAxis->setRange(0, 1.0);
     mSpeedAxis->setLabelFormat("%.1f");
     mSpeedAxis->setTitleText("Speed (m/s)");
+    mSpeedAxis->setTickType(QValueAxis::TicksDynamic);
+    mSpeedAxis->setTickInterval(0.1);
+    mSpeedAxis->setMinorTickCount(1);
 
     mChart->addAxis(mStepAxis, Qt::AlignBottom);
     mChart->addAxis(mSpeedAxis, Qt::AlignLeft);
@@ -376,8 +380,8 @@ void SpeedCurveTableModel::onSeriesUnregistered(IDataSeries *s)
 
 void SpeedCurveTableModel::onSeriesChanged(int, const QPointF &pt)
 {
-    if(mAxisRangeFollowsChanges && pt.y() + 1 > mSpeedAxis->max())
-        mSpeedAxis->setMax(pt.y() + 2);
+    if(mAxisRangeFollowsChanges && pt.y() + 0.3 > mSpeedAxis->max())
+        mSpeedAxis->setMax(pt.y() + 0.5);
 
     beginSetState(State::WaitingForRecalculation);
     endSetState();

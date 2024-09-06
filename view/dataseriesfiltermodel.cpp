@@ -8,6 +8,45 @@
 #include "dataseriesgraph.h"
 #include <QValueAxis>
 
+void setupAxisTicksOnZoom(QValueAxis *axis)
+{
+    QObject::connect(axis, &QValueAxis::rangeChanged, axis,
+                     [axis](qreal min, qreal max)
+    {
+        qreal length = max - min;
+        if(length < 15)
+        {
+            axis->setTickType(QValueAxis::TicksDynamic);
+            axis->setTickInterval(5);
+            axis->setMinorTickCount(4);
+        }
+        else if(length < 55)
+        {
+            axis->setTickType(QValueAxis::TicksDynamic);
+            axis->setTickInterval(10);
+            axis->setMinorTickCount(4);
+        }
+        else
+        {
+            axis->setTickType(QValueAxis::TicksFixed);
+            axis->setMinorTickCount(0);
+            if(length < 300)
+                axis->setTickInterval(50);
+            else if(length < 500)
+                axis->setTickInterval(100);
+            else if(length < 1500)
+                axis->setTickInterval(1000);
+            else if(length < 15000)
+                axis->setTickInterval(10000);
+            else
+            {
+                length = qFloor(length / 1000) * 1000;
+                axis->setTickInterval(length);
+            }
+        }
+    });
+}
+
 DataSeriesFilterModel::DataSeriesFilterModel(Chart *chart, QObject *parent)
     : QAbstractTableModel(parent)
     , mRecMgr(nullptr)
@@ -18,12 +57,17 @@ DataSeriesFilterModel::DataSeriesFilterModel(Chart *chart, QObject *parent)
     mTimeAxis->setLabelFormat("%.0f");
     mTimeAxis->setTitleText("Time (sec)");
     mTimeAxis->setTickType(QValueAxis::TicksDynamic);
-    mTimeAxis->setTickInterval(1);
+    mTimeAxis->setTickInterval(10);
+    mTimeAxis->setMinorTickCount(4);
+    setupAxisTicksOnZoom(mTimeAxis);
 
     mSpeedAxis = new QValueAxis(this);
-    mSpeedAxis->setRange(0, 1.5);
+    mSpeedAxis->setRange(0, 1.0);
     mSpeedAxis->setLabelFormat("%.1f");
     mSpeedAxis->setTitleText("Speed (m/s)");
+    mSpeedAxis->setTickType(QValueAxis::TicksDynamic);
+    mSpeedAxis->setTickInterval(0.1);
+    mSpeedAxis->setMinorTickCount(1);
 
     mStepAxis = new QValueAxis(this);
     mStepAxis->setRange(0, 127);
@@ -34,6 +78,7 @@ DataSeriesFilterModel::DataSeriesFilterModel(Chart *chart, QObject *parent)
     mTravelledAxis->setRange(0, 50000);
     mTravelledAxis->setLabelFormat("%.1f");
     mTravelledAxis->setTitleText("Distance (mm)");
+    setupAxisTicksOnZoom(mTravelledAxis);
 
     mChart->addAxis(mTimeAxis, Qt::AlignBottom);
     mChart->addAxis(mSpeedAxis, Qt::AlignLeft);
@@ -281,8 +326,8 @@ void DataSeriesFilterModel::onSeriesRegistered(IDataSeries *s)
         connect(item->dataSeries(), &IDataSeries::pointAdded, this,
                 [this](int, const QPointF& pt)
         {
-            if(mAxisRangeFollowsChanges && pt.y() + 5 > mSpeedAxis->max())
-                mSpeedAxis->setMax(pt.y() + 10);
+            if(mAxisRangeFollowsChanges && pt.y() + 0.3 > mSpeedAxis->max())
+                mSpeedAxis->setMax(pt.y() + 0.5);
         });
         break;
     case DataSeriesType::MovingAverage:
