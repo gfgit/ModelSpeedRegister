@@ -58,9 +58,6 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
         return;
 
-    if(loco->targetSpeedStep() == mLocomotives.at(locoIdx).lastSetStep)
-        return;
-
     bool invert = mLocomotives.at(locoIdx).invertDir;
     LocomotiveDirection trainDirection = loco->targetDirection();
     if(invert)
@@ -68,6 +65,9 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
 
     if(trainDirection != mDirection)
         setDirection(trainDirection);
+
+    if(loco->targetSpeedStep() == mLocomotives.at(locoIdx).lastSetStep)
+        return;
 
     qDebug() << "TRAIN CHANGE: adr=" << loco->address();
 
