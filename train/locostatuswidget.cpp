@@ -84,6 +84,6 @@ void LocoStatusWidget::updateStatus()
                 .arg(name)
                 .arg(speedStep).arg(direction == LocomotiveDirection::Forward ? 'F' : 'R')
                 .arg(targetSpeedStep).arg(targetDirection == LocomotiveDirection::Forward ? 'F' : 'R')
-                .arg(metersPerSecond, 0, 'f', 2)
+                .arg(metersPerSecond, 0, 'f', 4)
                 .arg(realKmH, 0, 'f', 2));
 }
