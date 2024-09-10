@@ -126,6 +126,9 @@ void Train::setDirection(LocomotiveDirection dir)
 {
     mDirection = dir;
 
+    if(!active)
+        return;
+
     auto invertedDir = oppositeDir(mDirection);
 
     // Apply direction to all locomotives
@@ -327,7 +330,9 @@ void Train::driveLoco(int locoIdx, int step)
 void Train::setActive(bool newActive)
 {
     active = newActive;
-    if(!active)
+    if(active)
+        setDirection(mDirection); // Force update direction
+    else
         stopDelayedSpeedApply();
 }
 
