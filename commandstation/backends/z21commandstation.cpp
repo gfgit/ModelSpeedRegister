@@ -38,6 +38,7 @@ Z21CommandStation::Z21CommandStation(QObject *parent)
 {
     mSocket = new QUdpSocket(this);
     mSocket->bind(QHostAddress("192.168.1.196"), 21105);
+    //mSocket->bind(QHostAddress::LocalHost, 21105);
     connect(mSocket, &QUdpSocket::readyRead, this, &Z21CommandStation::readPendingDatagram);
     QTimer *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &Z21CommandStation::readPendingDatagram);
@@ -81,7 +82,10 @@ bool Z21CommandStation::setLocomotiveSpeed(int address, int speedStep, Locomotiv
         z21Direction = Z21::Direction::Reverse;
     message.setDirection(z21Direction);
     message.setSpeedSteps(126);
-    message.setSpeedStep(speedStep);
+    if(speedStep == EMERGENCY_STOP)
+        message.setEmergencyStop();
+    else
+        message.setSpeedStep(speedStep);
     message.updateChecksum();
 
     send(message);
@@ -198,6 +202,9 @@ void Z21CommandStation::receive(const Z21::Message &message)
                     qDebug() << "WRONG SPEED STEP:" << reply.speedSteps();
                     currentSpeedStep = float(currentSpeedStep) / float(reply.speedSteps()) * 126.0;
                 }
+
+                if(reply.isEmergencyStop())
+                    currentSpeedStep = EMERGENCY_STOP;
 
                 auto queued = replyQueue.end();
                 for(auto it = replyQueue.begin(); it != replyQueue.end(); it++)
