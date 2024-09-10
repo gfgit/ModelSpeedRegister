@@ -82,6 +82,8 @@ bool Z21CommandStation::setLocomotiveSpeed(int address, int speedStep, Locomotiv
     message.setDirection(z21Direction);
     message.setSpeedSteps(126);
     message.setSpeedStep(speedStep);
+    message.updateChecksum();
+
     send(message);
     return false;
 }
@@ -92,6 +94,8 @@ bool Z21CommandStation::emergencyStop(int address)
     message.setAddress(address, false);
     message.setDirection(Z21::Direction::Forward);
     message.setEmergencyStop();
+    message.updateChecksum();
+
     send(message);
     return true;
 }
