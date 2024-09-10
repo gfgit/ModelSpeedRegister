@@ -231,13 +231,6 @@ void Train::applyDelayedSpeed()
     auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
     int step = entry.itemForLoco(locoIdx).step;
 
-    bool invert = mLocomotives.at(locoIdx).invertDir;
-    Locomotive *loco = mLocomotives.at(locoIdx).loco;
-
-    LocomotiveDirection locoDir = mDirection;
-    if(invert)
-        locoDir = oppositeDir(locoDir);
-
     driveLoco(locoIdx, step);
 }
 
@@ -284,6 +277,15 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
                 needsDelay = true;
             }
         }
+    }
+
+    if(!needsDelay)
+    {
+        // Reset to last set step
+        // This allows to be more in sync while accelerating
+        auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
+        int step = entry.itemForLoco(locoIdx).step;
+        driveLoco(locoIdx, step);
     }
 
     mLocomotives[locoIdx].lastSetStep = newStep;
