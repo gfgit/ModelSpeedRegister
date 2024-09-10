@@ -7,22 +7,22 @@ TrainSpeedTable::TrainSpeedTable()
 
 }
 
-TrainSpeedTable::Entry TrainSpeedTable::getClosestMatch(int address, int step) const
+TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(int locoIdx, int step) const
 {
     if(step == 0)
     {
-        return Entry{Item{0, 0}, Item{0, 0}};
+        return {-1, Entry{Item{0, 0}, Item{0, 0}}};
     }
 
-    if(address != mLocoA_Address && address != mLocoB_Address)
-        return {}; // Error
+    if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
+        return {-2, {}}; // Error
 
     for(int i = 0; i < mEntries.size(); i++)
     {
         const Entry &e = mEntries.at(i);
-        const Item &item = address == mLocoA_Address ? e.locoA : e.locoB;
+        const Item &item = e.itemForLoco(locoIdx);
         if(item.step == step)
-            return e; // Exact match
+            return {i, e}; // Exact match
 
         if(item.step > step)
         {
@@ -31,24 +31,54 @@ TrainSpeedTable::Entry TrainSpeedTable::getClosestMatch(int address, int step) c
             if(i > 0)
             {
                 const Entry &prev = mEntries.at(i - 1);
-                const Item &prevItem = address == mLocoA_Address ? prev.locoA : prev.locoB;
+                const Item &prevItem = prev.itemForLoco(locoIdx);
                 if((step - prevItem.step) < (item.step - step))
                 {
                     // Previous match is closer
-                    return prev;
+                    return {i - 1, prev};
                 }
 
                 // Higher match is closer
-                return e;
+                return {i, e};
             }
         }
     }
 
     // Return highest match if available
     if(!mEntries.empty())
-        return mEntries.last();
+        return {mEntries.size(), mEntries.last()};
 
-    return {}; // Empty table
+    return {-3, {}}; // Empty table
+}
+
+TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) const
+{
+    int lastIdx = 0;
+
+    for(int i = 0; i < mEntries.size(); i++)
+    {
+        const Entry& entry = mEntries.at(i);
+        if(qFuzzyCompare(entry.avgSpeed, speed))
+            return {i, entry};
+
+        if(entry.avgSpeed > speed)
+        {
+            // Return previous entry
+            if(i > 0)
+            {
+                return {i - 1, mEntries.at(i - 1)};
+            }
+
+            // No matches below this, return zero
+            return {-1, {}};
+        }
+    }
+
+    // Return highest match if available
+    if(!mEntries.empty())
+        return {mEntries.size(), mEntries.last()};
+
+    return {-3, {}}; // Empty table
 }
 
 TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const LocoSpeedMapping &locoB)
@@ -56,8 +86,6 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
     // TODO: prefer pushing/pulling, more than 2 locos
 
     TrainSpeedTable table;
-    table.mLocoA_Address = locoA.address();
-    table.mLocoB_Address = locoB.address();
 
     // Build a table with A speed matching a B speed
     int stepB = 1;
@@ -80,6 +108,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
 
             e.locoB.step = stepB;
             e.locoB.speed = speedB;
+            e.updateAvg();
 
             if(qFuzzyCompare(speedA, speedB))
             {
@@ -99,6 +128,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
                         // Previous match is closer
                         e.locoB.step = stepB - 1;
                         e.locoB.speed = prevSpeedB;
+                        e.updateAvg();
 
                         // Append only if not already contained
                         if(table.mEntries.isEmpty() || table.mEntries.last().locoA.step != stepA)
@@ -127,6 +157,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
             // Match with highest available B speed
             e.locoB.step = 126;
             e.locoB.speed = locoB.getSpeedForStep(126);
+            e.updateAvg();
             table.mEntries.append(e);
         }
     }

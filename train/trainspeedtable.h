@@ -19,18 +19,34 @@ public:
         // Todo support arbitrary loco number in train
         Item locoA;
         Item locoB;
+        double avgSpeed = 0;
+
+        inline void updateAvg()
+        {
+            avgSpeed = (locoA.speed + locoB.speed) / 2.0;
+        }
+
+        inline Item itemForLoco(int idx) const
+        {
+            // TODO support more than 2 locos
+            return idx == 0 ? locoA : locoB;
+        }
     };
 
     TrainSpeedTable();
 
-    Entry getClosestMatch(int address, int step) const;
+    typedef std::pair<int, Entry> ClosestMatchRet;
+
+    ClosestMatchRet getClosestMatch(int locoIdx, int step) const;
+
+    ClosestMatchRet getClosestMatch(double speed) const;
+
+    inline int count() const { return mEntries.count(); }
+    inline Entry getEntryAt(int idx) const { return mEntries.value(idx, {}); }
 
     static TrainSpeedTable buildTable(const LocoSpeedMapping& locoA, const LocoSpeedMapping &locoB);
 
 private:
-    int mLocoA_Address = 0;
-    int mLocoB_Address = 0;
-
     QVector<Entry> mEntries;
 };
 
