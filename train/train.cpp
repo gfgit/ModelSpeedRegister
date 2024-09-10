@@ -71,6 +71,12 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
 
     qDebug() << "TRAIN CHANGE: adr=" << loco->address();
 
+    if(loco->targetSpeedStep() == EMERGENCY_STOP)
+    {
+        setEmergencyStop();
+        return;
+    }
+
     onLocoChangedInternal(locoIdx, loco->targetSpeedStep());
 }
 
@@ -153,6 +159,27 @@ void Train::setMaximumSpeed(double speed)
         // Current speed exceeds maximum, slow down
         setTargetSpeedInternal(mMaxSpeed.speed, mMaxSpeed.tableIdx);
     }
+}
+
+void Train::setEmergencyStop()
+{
+    if(!active)
+        return;
+
+    for(int i = 0; i < mLocomotives.size(); i++)
+    {
+        driveLoco(i, EMERGENCY_STOP);
+    }
+
+    // Cancel acceleration
+    killTimer(mAccelerationTimerId);
+    mAccelerationTimerId = 0;
+    mState = State::Idle;
+
+    // Reset speed to zero
+    mLastSetSpeed.speed = 0;
+    mLastSetSpeed.tableIdx = -1;
+    mTargetSpeed = mLastSetSpeed;
 }
 
 void Train::timerEvent(QTimerEvent *e)

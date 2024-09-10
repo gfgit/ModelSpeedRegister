@@ -35,6 +35,8 @@ public:
     void setDirection(LocomotiveDirection dir);
     void setMaximumSpeed(double speed);
 
+    void setEmergencyStop();
+
 public slots:
     void setActive(bool newActive);
     void setLocoInvertDir(int idx, bool invertDir);

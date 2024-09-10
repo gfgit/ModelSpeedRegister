@@ -7,4 +7,6 @@ enum class LocomotiveDirection
     Reverse = 1
 };
 
+constexpr int EMERGENCY_STOP = -1;
+
 #endif // UTILS_H
