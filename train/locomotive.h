@@ -35,6 +35,7 @@ public:
 
 signals:
     void changed(Locomotive *self, bool queued);
+    void nameChanged(const QString& name);
 
 private:
     friend class LocomotivePool;

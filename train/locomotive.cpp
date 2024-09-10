@@ -44,6 +44,8 @@ const LocoSpeedMapping &Locomotive::speedMapping() const
 void Locomotive::setSpeedMapping(const LocoSpeedMapping &newSpeedMapping)
 {
     mSpeedMapping = newSpeedMapping;
+    emit nameChanged(mSpeedMapping.name());
+    emit changed(this, true);
 }
 
 void Locomotive::driveLoco(int speedStep, LocomotiveDirection direction)
@@ -51,18 +53,27 @@ void Locomotive::driveLoco(int speedStep, LocomotiveDirection direction)
     if(speedStep < 0 && speedStep > 126)
         return;
 
-    if(speedStep == mTargetSpeedStep && direction == mTargetDirection)
+    int oldTargetStep = mTargetSpeedStep;
+    LocomotiveDirection oldTargetDir = mTargetDirection;
+
+    mTargetSpeedStep = speedStep;
+    mTargetDirection = direction;
+
+    if(speedStep == oldTargetStep && direction == oldTargetDir)
+    {
+        emit changed(this, false);
         return;
+    }
 
     qDebug() << "DRIVE: adr=" << mAddress << "Dir=" << (direction == LocomotiveDirection::Forward ? 'F' : 'R')
              << "Step=" << speedStep;
 
     if(mPool && mAddress != 0)
     {
-        mTargetSpeedStep = speedStep;
-        mTargetDirection = direction;
         mPool->driveLoco(mAddress, speedStep, direction);
     }
+
+    emit changed(this, false);
 }
 
 void Locomotive::setSpeed_internal(int speedStep, LocomotiveDirection dir, bool wasQueued)
