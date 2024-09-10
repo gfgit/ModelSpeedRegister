@@ -4,7 +4,7 @@
 
 #include <QDebug>
 
-#include <QTimer>
+#include <QTimerEvent>
 
 LocomotiveDirection oppositeDir(LocomotiveDirection dir)
 {
@@ -16,22 +16,36 @@ LocomotiveDirection oppositeDir(LocomotiveDirection dir)
 Train::Train(QObject *parent) :
     QObject(parent)
 {
-    timerA.start();
-    timerB.start();
+    active = false;
 }
 
-Train *Train::createTrain(Locomotive *a, Locomotive *b)
+Locomotive *Train::getLocoAt(int idx) const
 {
-    Train *train = new Train;
-    train->locoA = a;
-    train->locoB = b;
+    if(idx < 0 || idx > mLocomotives.size())
+        return nullptr;
 
-    train->mSpeedTable = TrainSpeedTable::buildTable(a->speedMapping(), b->speedMapping());
+    return mLocomotives.at(idx).loco;
+}
 
-    connect(a, &Locomotive::changed, train, &Train::onLocoChanged);
-    connect(b, &Locomotive::changed, train, &Train::onLocoChanged);
+bool Train::getLocoInvertDirAt(int idx) const
+{
+    if(idx < 0 || idx > mLocomotives.size())
+        return false;
 
-    return train;
+    return mLocomotives.at(idx).invertDir;
+}
+
+int Train::getLocoIdx(Locomotive *loco) const
+{
+    for(int i = 0; i < mLocomotives.size(); i++)
+    {
+        if(mLocomotives.at(i).loco == loco)
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 void Train::onLocoChanged(Locomotive *loco, bool queued)
@@ -39,90 +53,58 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     if(!active || queued)
         return;
 
-    qDebug() << "TRAIN CHANGE: adr=" << loco->address();
+    int locoIdx = getLocoIdx(loco);
 
-//    QElapsedTimer *t = nullptr;
+    if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
+        return;
 
-//    if(loco == locoA)
-//        t = &timerA;
-//    else
-//        t = &timerB;
+    if(loco->targetSpeedStep() == mLocomotives.at(locoIdx).lastSetStep)
+        return;
 
-//    if(t->elapsed() < 100)
-//    {
-//        bool &scheduled = loco == locoA ? locoAScheduled : locoBScheduled;
-//        if(!scheduled)
-//        {
-//            scheduled = true;
+    if(mInsideLocoUpdate)
+        return; // TODO: remove
 
-//            QTimer::singleShot(100, this, [this, loco]()
-//            {
-//                if(loco == locoA)
-//                    locoAScheduled = false;
-//                else
-//                    locoBScheduled = false;
-
-//                onLocoChanged(locoA);
-//            });
-//        }
-
-//        return;
-//    }
-
-//    t->restart();
-
-    bool invert = loco == locoA ? locoAInvert : locoBInvert;
-
-    LocomotiveDirection trainDirection = loco->direction();
+    bool invert = mLocomotives.at(locoIdx).invertDir;
+    LocomotiveDirection trainDirection = loco->targetDirection();
     if(invert)
         trainDirection = oppositeDir(trainDirection);
 
-    auto entry = mSpeedTable.getClosestMatch(loco->address(), loco->speedStep());
+    if(trainDirection != mDirection)
+        setDirection(trainDirection);
 
-    bool changed = false;
+    qDebug() << "TRAIN CHANGE: adr=" << loco->address();
 
-    LocomotiveDirection locoADir = trainDirection;
-    if(locoAInvert)
-        locoADir = oppositeDir(locoADir);
+    onLocoChangedInternal(locoIdx, loco->targetSpeedStep());
 
-    LocomotiveDirection locoBDir = trainDirection;
-    if(locoBInvert)
-        locoBDir = oppositeDir(locoBDir);
+    // auto match = mSpeedTable.getClosestMatch(locoIdx, loco->targetSpeedStep());
+    // auto entry = match.second;
 
-    if(locoA->targetSpeedStep() != entry.locoA.step || locoA->targetDirection() != locoADir)
-    {
-        changed = true;
-        locoA->driveLoco(entry.locoA.step, locoADir);
-    }
+    // bool changed = false;
 
-    if(locoB->targetSpeedStep() != entry.locoB.step || locoB->targetDirection() != locoBDir)
-    {
-        changed = true;
-        locoB->driveLoco(entry.locoB.step, locoBDir);
-    }
+    // for(int i = 0; i < mLocomotives.size(); i++)
+    // {
+    //     if(i == locoIdx)
+    //         continue; // Delay setting speed to source locomotive
 
-    qDebug() << "            TRAIN: A:" << entry.locoA.step << "B:" << entry.locoB.step
-             << "FROM:" << (loco == locoA ? 'A' : 'B') << loco->speedStep();
-}
+    //     const LocoItem& item = mLocomotives.at(i);
 
-bool Train::getLocoBInvert() const
-{
-    return locoBInvert;
-}
+    //     LocomotiveDirection locoDir = trainDirection;
+    //     if(item.invertDir)
+    //         locoDir = oppositeDir(locoDir);
 
-void Train::setLocoBInvert(bool newLocoBInvert)
-{
-    locoBInvert = newLocoBInvert;
-}
+    //     int step = entry.itemForLoco(i).step;
 
-bool Train::getLocoAInvert() const
-{
-    return locoAInvert;
-}
+    //     if(item.loco->targetSpeedStep() != step || item.loco->targetDirection() != locoDir)
+    //     {
+    //         changed = true;
+    //         driveLoco(i, step);
+    //     }
+    // }
 
-void Train::setLocoAInvert(bool newLocoAInvert)
-{
-    locoAInvert = newLocoAInvert;
+    // startDelayedSpeedApply(locoIdx);
+
+    // qDebug() << "            TRAIN: A:" << entry.locoA.step << "B:" << entry.locoB.step
+    //          << "FROM:" << getLocoIdx(loco) << loco->speedStep();
 }
 
 bool Train::getActive() const
@@ -130,7 +112,269 @@ bool Train::getActive() const
     return active;
 }
 
+void Train::addLoco(Locomotive *loco)
+{
+    if(getLocoIdx(loco) != -1)
+    {
+        return; // Already added
+    }
+
+    mLocomotives.append(LocoItem{loco, false});
+    connect(loco, &Locomotive::changed, this, &Train::onLocoChanged);
+
+    // Reset
+    mSpeedTable = TrainSpeedTable();
+}
+
+bool Train::removeLoco(Locomotive *loco)
+{
+    int locoIdx = getLocoIdx(loco);
+
+    if(locoIdx < 0)
+        return false; // Not in Train
+
+    mLocomotives.removeAt(locoIdx);
+    disconnect(loco, &Locomotive::changed, this, &Train::onLocoChanged);
+
+    // Reset
+    mSpeedTable = TrainSpeedTable();
+
+    return true;
+}
+
+void Train::updateSpeedTable()
+{
+    if(mLocomotives.size() < 2)
+    {
+        // Reset
+        mSpeedTable = TrainSpeedTable();
+        return;
+    }
+
+    mSpeedTable = TrainSpeedTable::buildTable(mLocomotives.at(0).loco->speedMapping(),
+                                              mLocomotives.at(1).loco->speedMapping());
+
+    int lastTableIdx = mSpeedTable.count() - 1;
+    auto lastEntry = mSpeedTable.getEntryAt(lastTableIdx);
+    mMaxSpeed.tableIdx = lastTableIdx;
+    mMaxSpeed.speed = lastEntry.avgSpeed;
+}
+
+void Train::setDirection(LocomotiveDirection dir)
+{
+    mDirection = dir;
+
+    auto invertedDir = oppositeDir(mDirection);
+
+    // Apply direction to all locomotives
+    for(int i = 0; i < mLocomotives.size(); i++)
+    {
+        const LocoItem& item = mLocomotives.at(i);
+
+        int step = item.loco->targetSpeedStep();
+        item.loco->driveLoco(step,
+                             item.invertDir ? invertedDir : mDirection);
+    }
+}
+
+void Train::setMaximumSpeed(double speed)
+{
+    auto match = mSpeedTable.getClosestMatch(speed);
+    mMaxSpeed.tableIdx = match.first;
+    mMaxSpeed.speed = match.second.avgSpeed;
+
+    if(active && mTargetSpeed.tableIdx > mMaxSpeed.tableIdx)
+    {
+        // Current speed exceeds maximum, slow down
+        setTargetSpeedInternal(mMaxSpeed.speed, mMaxSpeed.tableIdx);
+    }
+}
+
+void Train::timerEvent(QTimerEvent *e)
+{
+    if(e->timerId() == mApplySpeedTimerId)
+    {
+        applyDelayedSpeed();
+        return;
+    }
+
+    QObject::timerEvent(e);
+}
+
+void Train::startDelayedSpeedApply(int locoIdx)
+{
+    if(mApplySpeedTimerId && mApplySpeedLocoIdx != locoIdx)
+    {
+        // Source loco changed, apply now
+        applyDelayedSpeed();
+    }
+
+    // Start new timer
+    mApplySpeedLocoIdx = locoIdx;
+
+    killTimer(mApplySpeedTimerId);
+    mApplySpeedTimerId = startTimer(500);
+}
+
+void Train::stopDelayedSpeedApply()
+{
+    mApplySpeedLocoIdx = -1;
+    killTimer(mApplySpeedTimerId);
+    mApplySpeedTimerId = 0;
+}
+
+void Train::applyDelayedSpeed()
+{
+    int locoIdx = mApplySpeedLocoIdx;
+    stopDelayedSpeedApply();
+
+    if(locoIdx == -1)
+        return;
+
+    auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
+    int step = entry.itemForLoco(locoIdx).step;
+
+    bool invert = mLocomotives.at(locoIdx).invertDir;
+    Locomotive *loco = mLocomotives.at(locoIdx).loco;
+
+    LocomotiveDirection locoDir = mDirection;
+    if(invert)
+        locoDir = oppositeDir(locoDir);
+
+    driveLoco(locoIdx, step);
+}
+
+void Train::onLocoChangedInternal(int locoIdx, int step)
+{
+    if(!active)
+        return;
+
+    TrainSpeedTable::Entry maxSpeedEntry = mSpeedTable.getEntryAt(mMaxSpeed.tableIdx);
+    int maxLocoStep = maxSpeedEntry.itemForLoco(locoIdx).step;
+    if(step > maxLocoStep)
+    {
+        // Locomotive exceeded Train max speed, revert immediately
+        driveLoco(locoIdx, maxLocoStep);
+
+        setTargetSpeedInternal(mMaxSpeed.speed, mMaxSpeed.tableIdx);
+
+        return;
+    }
+
+    auto match = mSpeedTable.getClosestMatch(locoIdx, step);
+
+    bool needsDelay = false;
+    const int newStep = match.second.itemForLoco(locoIdx).step;
+    if(newStep != step)
+    {
+        // Requested step was adjusted
+        // This could prevent setting speed going up one by one
+
+        int oldStep = mLocomotives.at(locoIdx).lastSetStep;
+
+        if(oldStep < step && step > newStep ||
+                oldStep > step && step < newStep)
+        {
+            if(mLastSetSpeed.tableIdx == match.first)
+            {
+                // We would override user requested speed
+                // with original speed
+                needsDelay = true;
+            }
+            else if(abs(mLastSetSpeed.tableIdx - match.first) <= 1)
+            {
+                // Give user more time to set speed
+                needsDelay = true;
+            }
+        }
+    }
+
+    mLocomotives[locoIdx].lastSetStep = newStep;
+
+    SpeedPoint speedPoint;
+    speedPoint.speed = match.second.avgSpeed;
+    speedPoint.tableIdx = match.first;
+
+    setTargetSpeedInternal(speedPoint.speed, speedPoint.tableIdx,
+                           needsDelay ? locoIdx : -1);
+}
+
+void Train::setTargetSpeedInternal(double speed, int tableIdx, int sourceLocoIdx)
+{
+    if(tableIdx == -1)
+    {
+        auto match = mSpeedTable.getClosestMatch(speed);
+        speed = match.second.avgSpeed;
+        tableIdx = match.first;
+    }
+
+    if(tableIdx > mMaxSpeed.tableIdx)
+    {
+        speed = mMaxSpeed.speed;
+        tableIdx = mMaxSpeed.tableIdx;
+    }
+
+    mTargetSpeed.speed = speed;
+    mTargetSpeed.tableIdx = tableIdx;
+
+    if(sourceLocoIdx != -1)
+        startDelayedSpeedApply(sourceLocoIdx);
+
+    // TODO: acceleration
+    setSpeedInternal(mTargetSpeed);
+}
+
+void Train::setSpeedInternal(const SpeedPoint &speedPoint)
+{
+    mLastSetSpeed = speedPoint;
+    auto entry = mSpeedTable.getEntryAt(speedPoint.tableIdx);
+
+    // Apply speed to all locomotives
+    for(int i = 0; i < mLocomotives.size(); i++)
+    {
+        if(mApplySpeedLocoIdx == i)
+            continue; // This loco has delayed apply scheduled
+
+        const LocoItem& item = mLocomotives.at(i);
+
+        LocomotiveDirection locoDir = mDirection;
+        if(item.invertDir)
+            locoDir = oppositeDir(locoDir);
+
+        int step = entry.itemForLoco(i).step;
+
+        if(item.loco->targetSpeedStep() != step || item.loco->targetDirection() != locoDir)
+        {
+            driveLoco(i, step);
+        }
+    }
+}
+
+void Train::driveLoco(int locoIdx, int step)
+{
+    LocoItem& item = mLocomotives[locoIdx];
+    item.lastSetStep = step;
+
+    LocomotiveDirection locoDir = mDirection;
+    if(item.invertDir)
+        locoDir = oppositeDir(locoDir);
+
+    mInsideLocoUpdate = true; // TODO: remove
+    item.loco->driveLoco(step, locoDir);
+    mInsideLocoUpdate = false;
+}
+
 void Train::setActive(bool newActive)
 {
     active = newActive;
+    if(!active)
+        stopDelayedSpeedApply();
+}
+
+void Train::setLocoInvertDir(int idx, bool invertDir)
+{
+    if(idx < 0 || idx > mLocomotives.size())
+        return;
+
+    mLocomotives[idx].invertDir = invertDir;
 }
