@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QVector>
 
+#include <QElapsedTimer>
+
 #include "trainspeedtable.h"
 
 #include "../commandstation/utils.h"
@@ -44,6 +46,13 @@ private:
         int tableIdx = 0;
     };
 
+    enum class State
+    {
+        Idle = 0,
+        Accelerating,
+        Braking
+    };
+
     void timerEvent(QTimerEvent *e) override;
 
     void startDelayedSpeedApply(int locoIdx);
@@ -58,6 +67,12 @@ private:
     void setSpeedInternal(const SpeedPoint& speedPoint);
 
     void driveLoco(int locoIdx, int step);
+
+    void scheduleAccelerationFrom(double currentSpeed,
+                                  int newTableIdx,
+                                  State state);
+
+    void updateAccelerationState();
 
 private slots:
     void onLocoChanged(Locomotive *loco, bool queued);
@@ -83,6 +98,15 @@ private:
     SpeedPoint mLastSetSpeed;
 
     LocomotiveDirection mDirection;
+
+    int mAccelerationTimerId = 0;
+    QElapsedTimer mAccelerationElapsed;
+
+    // TODO: allow setting
+    double mAccelerationRate = 1.0 / 87.0;
+    double mDecelerationRate = 0.5 / 87.0;
+
+    State mState = State::Idle;
 };
 
 #endif // TRAIN_H

@@ -162,6 +162,11 @@ void Train::timerEvent(QTimerEvent *e)
         applyDelayedSpeed();
         return;
     }
+    else if(e->timerId() == mAccelerationTimerId)
+    {
+        updateAccelerationState();
+        return;
+    }
 
     QObject::timerEvent(e);
 }
@@ -285,8 +290,139 @@ void Train::setTargetSpeedInternal(double speed, int tableIdx, int sourceLocoIdx
     if(sourceLocoIdx != -1)
         startDelayedSpeedApply(sourceLocoIdx);
 
-    // TODO: acceleration
-    setSpeedInternal(mTargetSpeed);
+    if(mTargetSpeed.tableIdx > mLastSetSpeed.tableIdx)
+    {
+        if(mState == State::Accelerating)
+        {
+            // Keep accelerating
+        }
+        else
+        {
+            double currentSpeed = mLastSetSpeed.speed;
+            int nextTableIdx = mLastSetSpeed.tableIdx + 1;
+
+            if(mState == State::Braking)
+            {
+                // We start from under last set speed
+                int millis = mAccelerationElapsed.elapsed();
+                double deltaSpeed = mDecelerationRate * double(millis) / 1000.0;
+                currentSpeed = mLastSetSpeed.speed - deltaSpeed;
+                nextTableIdx = mLastSetSpeed.tableIdx;
+            }
+
+            scheduleAccelerationFrom(currentSpeed,
+                                     nextTableIdx,
+                                     State::Accelerating);
+        }
+    }
+    else if(mTargetSpeed.tableIdx < mLastSetSpeed.tableIdx)
+    {
+        if(mState == State::Braking)
+        {
+            // Keep braking
+        }
+        else
+        {
+            double currentSpeed = mLastSetSpeed.speed;
+            int prevTableIdx = mLastSetSpeed.tableIdx - 1;
+
+            if(mState == State::Accelerating)
+            {
+                // We start from above last set speed
+                int millis = mAccelerationElapsed.elapsed();
+                double deltaSpeed = mAccelerationRate * double(millis) / 1000.0;
+                currentSpeed = mLastSetSpeed.speed + deltaSpeed;
+                prevTableIdx = mLastSetSpeed.tableIdx;
+            }
+
+            scheduleAccelerationFrom(currentSpeed,
+                                     prevTableIdx,
+                                     State::Braking);
+        }
+    }
+    else if(mState != State::Idle)
+    {
+        // Cancel current acceleration
+        mState = State::Idle;
+        killTimer(mAccelerationTimerId);
+        mAccelerationTimerId = 0;
+
+        // Force setting speed
+        setSpeedInternal(mTargetSpeed);
+    }
+}
+
+void Train::scheduleAccelerationFrom(double currentSpeed, int newTableIdx, State state)
+{
+    // Calculate seconds to previous table index
+    double newSpeed = mSpeedTable.getEntryAt(newTableIdx).avgSpeed;
+
+    const double deltaSpeed = newSpeed - currentSpeed;
+    double accelRate = mAccelerationRate;
+    if(state == State::Braking)
+    {
+        // Sign is inverted because speed is going down
+        accelRate = -mDecelerationRate;
+    }
+
+    const double deltaSeconds = deltaSpeed / accelRate;
+    const int millis = qCeil(deltaSeconds * 1000.0);
+
+    mState = state;
+    killTimer(mAccelerationTimerId);
+    mAccelerationTimerId = startTimer(millis, Qt::PreciseTimer);
+    mAccelerationElapsed.start();
+}
+
+void Train::updateAccelerationState()
+{
+    killTimer(mAccelerationTimerId);
+    mAccelerationTimerId = 0;
+
+    int newTableIdx = mLastSetSpeed.tableIdx;
+    if(mState == State::Accelerating)
+    {
+        newTableIdx++;
+    }
+    else if(mState == State::Braking)
+    {
+        newTableIdx--;
+    }
+    else
+        return;
+
+    auto entry = mSpeedTable.getEntryAt(newTableIdx);
+    SpeedPoint newSpeed;
+    newSpeed.speed = entry.avgSpeed;
+    newSpeed.tableIdx = newTableIdx;
+
+    setSpeedInternal(newSpeed);
+
+    if(mTargetSpeed.tableIdx > mLastSetSpeed.tableIdx)
+    {
+        // Keep accelerating
+        double currentSpeed = mLastSetSpeed.speed;
+        int nextTableIdx = mLastSetSpeed.tableIdx + 1;
+
+        scheduleAccelerationFrom(currentSpeed,
+                                 nextTableIdx,
+                                 State::Accelerating);
+    }
+    else if(mTargetSpeed.tableIdx < mLastSetSpeed.tableIdx)
+    {
+        // Keep braking
+        double currentSpeed = mLastSetSpeed.speed;
+        int prevTableIdx = mLastSetSpeed.tableIdx - 1;
+
+        scheduleAccelerationFrom(currentSpeed,
+                                 prevTableIdx,
+                                 State::Braking);
+    }
+    else
+    {
+        // We reached target speed
+        mState = State::Idle;
+    }
 }
 
 void Train::setSpeedInternal(const SpeedPoint &speedPoint)
