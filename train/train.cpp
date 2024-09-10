@@ -61,9 +61,6 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     if(loco->targetSpeedStep() == mLocomotives.at(locoIdx).lastSetStep)
         return;
 
-    if(mInsideLocoUpdate)
-        return; // TODO: remove
-
     bool invert = mLocomotives.at(locoIdx).invertDir;
     LocomotiveDirection trainDirection = loco->targetDirection();
     if(invert)
@@ -107,10 +104,7 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     //          << "FROM:" << getLocoIdx(loco) << loco->speedStep();
 }
 
-bool Train::getActive() const
-{
-    return active;
-}
+
 
 void Train::addLoco(Locomotive *loco)
 {
@@ -359,9 +353,7 @@ void Train::driveLoco(int locoIdx, int step)
     if(item.invertDir)
         locoDir = oppositeDir(locoDir);
 
-    mInsideLocoUpdate = true; // TODO: remove
     item.loco->driveLoco(step, locoDir);
-    mInsideLocoUpdate = false;
 }
 
 void Train::setActive(bool newActive)

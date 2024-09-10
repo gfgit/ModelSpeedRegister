@@ -21,7 +21,10 @@ public:
 
     int getLocoIdx(Locomotive *loco) const;
 
-    bool getActive() const;
+    inline bool isActive() const
+    {
+        return active;
+    }
 
     void addLoco(Locomotive *loco);
     bool removeLoco(Locomotive *loco);
@@ -29,6 +32,10 @@ public:
 
     void setDirection(LocomotiveDirection dir);
     void setMaximumSpeed(double speed);
+
+public slots:
+    void setActive(bool newActive);
+    void setLocoInvertDir(int idx, bool invertDir);
 
 private:
     struct SpeedPoint
@@ -52,10 +59,6 @@ private:
 
     void driveLoco(int locoIdx, int step);
 
-public slots:
-    void setActive(bool newActive);
-    void setLocoInvertDir(int idx, bool invertDir);
-
 private slots:
     void onLocoChanged(Locomotive *loco, bool queued);
 
@@ -71,8 +74,6 @@ private:
 
     TrainSpeedTable mSpeedTable;
     bool active = false;
-
-    bool mInsideLocoUpdate = false;
 
     int mApplySpeedTimerId = 0;
     int mApplySpeedLocoIdx = -1;
