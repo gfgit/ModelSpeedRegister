@@ -72,39 +72,7 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     qDebug() << "TRAIN CHANGE: adr=" << loco->address();
 
     onLocoChangedInternal(locoIdx, loco->targetSpeedStep());
-
-    // auto match = mSpeedTable.getClosestMatch(locoIdx, loco->targetSpeedStep());
-    // auto entry = match.second;
-
-    // bool changed = false;
-
-    // for(int i = 0; i < mLocomotives.size(); i++)
-    // {
-    //     if(i == locoIdx)
-    //         continue; // Delay setting speed to source locomotive
-
-    //     const LocoItem& item = mLocomotives.at(i);
-
-    //     LocomotiveDirection locoDir = trainDirection;
-    //     if(item.invertDir)
-    //         locoDir = oppositeDir(locoDir);
-
-    //     int step = entry.itemForLoco(i).step;
-
-    //     if(item.loco->targetSpeedStep() != step || item.loco->targetDirection() != locoDir)
-    //     {
-    //         changed = true;
-    //         driveLoco(i, step);
-    //     }
-    // }
-
-    // startDelayedSpeedApply(locoIdx);
-
-    // qDebug() << "            TRAIN: A:" << entry.locoA.step << "B:" << entry.locoB.step
-    //          << "FROM:" << getLocoIdx(loco) << loco->speedStep();
 }
-
-
 
 void Train::addLoco(Locomotive *loco)
 {
