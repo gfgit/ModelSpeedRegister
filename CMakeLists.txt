@@ -63,6 +63,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         view/locospeedcurveview.h view/locospeedcurveview.cpp
         view/starttestdlg.h view/starttestdlg.cpp
         recorder/rawspeedcurveio.h recorder/rawspeedcurveio.cpp
+        view/traintab.h view/traintab.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ModelSpeedRegister APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
