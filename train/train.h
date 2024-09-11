@@ -99,7 +99,7 @@ private:
     SpeedPoint mMaxSpeed;
     SpeedPoint mLastSetSpeed;
 
-    LocomotiveDirection mDirection;
+    LocomotiveDirection mDirection = LocomotiveDirection::Forward;
 
     int mAccelerationTimerId = 0;
     QElapsedTimer mAccelerationElapsed;

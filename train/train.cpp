@@ -142,9 +142,12 @@ void Train::setDirection(LocomotiveDirection dir)
     {
         const LocoItem& item = mLocomotives.at(i);
 
-        int step = item.loco->targetSpeedStep();
-        item.loco->driveLoco(step,
-                             item.invertDir ? invertedDir : mDirection);
+        LocomotiveDirection locoDir = item.invertDir ? invertedDir : mDirection;
+
+        if(item.loco->targetDirection() == locoDir)
+            continue;
+
+        item.loco->driveLoco(item.lastSetStep, locoDir);
     }
 }
 
