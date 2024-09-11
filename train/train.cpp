@@ -263,18 +263,41 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
 
         int oldStep = mLocomotives.at(locoIdx).lastSetStep;
 
-        if(oldStep < step && step > newStep ||
-                oldStep > step && step < newStep)
+        if(mLastSetSpeed.tableIdx == match.first)
         {
-            if(mLastSetSpeed.tableIdx == match.first)
+            // We would get rounded back to previous state
+            if(qAbs(oldStep - step) > 3)
+            {
+                // It takes more than +3 steps to reach next tableIdx
+                // We use 3 as threshold to ignore spurious rotary knob changes
+                // We help user reach next tableIdx before delay timeout triggers
+                // In fact it's hard to go more than 4 steps up before delaied
+                // step apply triggers.
+                int newTableIdx = mLastSetSpeed.tableIdx;
+                if(step > oldStep)
+                    newTableIdx++;
+                else
+                    newTableIdx--;
+
+                match.first = newTableIdx;
+                match.second = mSpeedTable.getEntryAt(newTableIdx);
+            }
+            else if(oldStep < step && step > newStep ||
+                    oldStep > step && step < newStep)
             {
                 // We would override user requested speed
-                // with original speed
+                // with original speed, give user some time
+                // to set higher/lower step
                 needsDelay = true;
             }
-            else if(abs(mLastSetSpeed.tableIdx - match.first) <= 1)
+        }
+        else if(abs(mLastSetSpeed.tableIdx - match.first) == 1)
+        {
+            // User managed to get to next/prev tableIdx but still got
+            // adjusted. Give some extra time if trend got inverted
+            if(oldStep < step && step > newStep ||
+                    oldStep > step && step < newStep)
             {
-                // Give user more time to set speed
                 needsDelay = true;
             }
         }
