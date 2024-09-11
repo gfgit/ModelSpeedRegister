@@ -11,11 +11,11 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(int locoIdx, i
 {
     if(step == 0)
     {
-        return {-1, Entry{Item{0, 0}, Item{0, 0}}};
+        return {NULL_TABLE_ENTRY, Entry{Item{0, 0}, Item{0, 0}}};
     }
 
     if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
-        return {-2, {}}; // Error
+        return {NULL_TABLE_ENTRY, {}}; // Error
 
     for(int i = 0; i < mEntries.size(); i++)
     {
@@ -48,7 +48,7 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(int locoIdx, i
     if(!mEntries.empty())
         return {mEntries.size(), mEntries.last()};
 
-    return {-3, {}}; // Empty table
+    return {NULL_TABLE_ENTRY, {}}; // Empty table
 }
 
 TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) const
@@ -70,7 +70,7 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) 
             }
 
             // No matches below this, return zero
-            return {-1, {}};
+            return {NULL_TABLE_ENTRY, {}};
         }
     }
 
@@ -78,7 +78,7 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) 
     if(!mEntries.empty())
         return {mEntries.size(), mEntries.last()};
 
-    return {-3, {}}; // Empty table
+    return {NULL_TABLE_ENTRY, {}}; // Empty table
 }
 
 TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const LocoSpeedMapping &locoB)

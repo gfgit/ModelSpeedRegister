@@ -45,7 +45,7 @@ int Train::getLocoIdx(Locomotive *loco) const
         }
     }
 
-    return -1;
+    return INVALID_LOCO_IDX;
 }
 
 void Train::onLocoChanged(Locomotive *loco, bool queued)
@@ -82,7 +82,7 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
 
 void Train::addLoco(Locomotive *loco)
 {
-    if(getLocoIdx(loco) != -1)
+    if(getLocoIdx(loco) != INVALID_LOCO_IDX)
     {
         return; // Already added
     }
@@ -145,7 +145,7 @@ void Train::setDirection(LocomotiveDirection dir)
         LocomotiveDirection locoDir = item.invertDir ? invertedDir : mDirection;
 
         if(item.loco->targetDirection() == locoDir)
-            continue;
+            continue; // Already in correct direction
 
         item.loco->driveLoco(item.lastSetStep, locoDir);
     }
@@ -180,9 +180,7 @@ void Train::setEmergencyStop()
     mState = State::Idle;
 
     // Reset speed to zero
-    mLastSetSpeed.speed = 0;
-    mLastSetSpeed.tableIdx = -1;
-    mTargetSpeed = mLastSetSpeed;
+    mLastSetSpeed = mTargetSpeed = SpeedPoint();
 }
 
 void Train::timerEvent(QTimerEvent *e)
@@ -218,7 +216,7 @@ void Train::startDelayedSpeedApply(int locoIdx)
 
 void Train::stopDelayedSpeedApply()
 {
-    mApplySpeedLocoIdx = -1;
+    mApplySpeedLocoIdx = INVALID_LOCO_IDX;
     killTimer(mApplySpeedTimerId);
     mApplySpeedTimerId = 0;
 }
@@ -228,7 +226,7 @@ void Train::applyDelayedSpeed()
     int locoIdx = mApplySpeedLocoIdx;
     stopDelayedSpeedApply();
 
-    if(locoIdx == -1)
+    if(locoIdx == INVALID_LOCO_IDX)
         return;
 
     auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
@@ -305,12 +303,12 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
     speedPoint.tableIdx = match.first;
 
     setTargetSpeedInternal(speedPoint.speed, speedPoint.tableIdx,
-                           needsDelay ? locoIdx : -1);
+                           needsDelay ? locoIdx : INVALID_LOCO_IDX);
 }
 
 void Train::setTargetSpeedInternal(double speed, int tableIdx, int sourceLocoIdx)
 {
-    if(tableIdx == -1)
+    if(tableIdx == TrainSpeedTable::NULL_TABLE_ENTRY && !qFuzzyIsNull(speed))
     {
         auto match = mSpeedTable.getClosestMatch(speed);
         speed = match.second.avgSpeed;
@@ -326,7 +324,7 @@ void Train::setTargetSpeedInternal(double speed, int tableIdx, int sourceLocoIdx
     mTargetSpeed.speed = speed;
     mTargetSpeed.tableIdx = tableIdx;
 
-    if(sourceLocoIdx != -1)
+    if(sourceLocoIdx != INVALID_LOCO_IDX)
         startDelayedSpeedApply(sourceLocoIdx);
 
     if(mTargetSpeed.tableIdx > mLastSetSpeed.tableIdx)
@@ -506,7 +504,10 @@ void Train::setActive(bool newActive)
 {
     active = newActive;
     if(active)
+    {
+        mLastSetSpeed = mTargetSpeed = SpeedPoint();
         setDirection(mDirection); // Force update direction
+    }
     else
         stopDelayedSpeedApply();
 }

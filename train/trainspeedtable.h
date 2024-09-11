@@ -8,6 +8,11 @@ class LocoSpeedMapping;
 class TrainSpeedTable
 {
 public:
+    enum
+    {
+        NULL_TABLE_ENTRY = -1
+    };
+
     struct Item
     {
         int step = 0;

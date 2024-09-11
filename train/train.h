@@ -41,11 +41,16 @@ public slots:
     void setActive(bool newActive);
     void setLocoInvertDir(int idx, bool invertDir);
 
-private:
+private:  
+    enum
+    {
+        INVALID_LOCO_IDX = -1
+    };
+
     struct SpeedPoint
     {
         double speed = 0;
-        int tableIdx = 0;
+        int tableIdx = TrainSpeedTable::NULL_TABLE_ENTRY;
     };
 
     enum class State
@@ -93,7 +98,7 @@ private:
     bool active = false;
 
     int mApplySpeedTimerId = 0;
-    int mApplySpeedLocoIdx = -1;
+    int mApplySpeedLocoIdx = INVALID_LOCO_IDX;
 
     SpeedPoint mTargetSpeed;
     SpeedPoint mMaxSpeed;
