@@ -28,7 +28,7 @@ public:
         return active;
     }
 
-    void addLoco(Locomotive *loco);
+    bool addLoco(Locomotive *loco);
     bool removeLoco(Locomotive *loco);
     void updateSpeedTable();
 
@@ -37,8 +37,11 @@ public:
 
     void setEmergencyStop();
 
+signals:
+    void activeChanged(bool active);
+
 public slots:
-    void setActive(bool newActive);
+    bool setActive(bool newActive);
     void setLocoInvertDir(int idx, bool invertDir);
 
 private:  

@@ -24,6 +24,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <QMessageBox>
+
 bool loadSpeedCurve(const QString& fileName, Locomotive *loco)
 {
     QFile f(fileName);
@@ -126,7 +128,16 @@ TrainTab::TrainTab(LocomotivePool *pool, QWidget *parent)
 
     QCheckBox *trainActiveCB = new QCheckBox(tr("Train Active"));
     lay->addWidget(trainActiveCB);
-    connect(trainActiveCB, &QCheckBox::toggled, mTrain, &Train::setActive);
+    connect(trainActiveCB, &QCheckBox::toggled, mTrain,
+            [this, trainActiveCB](bool val)
+    {
+        if(!mTrain->setActive(val))
+        {
+            trainActiveCB->setChecked(mTrain->isActive());
+            QMessageBox::warning(this, tr("Cannot Deactivate Train"),
+                                tr("Please set speed to zero first."));
+        }
+    });
 
     mScrollArea = new QScrollArea;
     mScrollArea->setWidgetResizable(true);
@@ -138,6 +149,13 @@ TrainTab::TrainTab(LocomotivePool *pool, QWidget *parent)
 
 void TrainTab::addNewLoco()
 {
+    if(mTrain->isActive())
+    {
+        QMessageBox::warning(this, tr("Cannot Add Loco"),
+                             tr("Please first deactivate Train."));
+        return;
+    }
+
     Item *item = createItem();
     mItems.append(item);
 
@@ -175,6 +193,13 @@ bool TrainTab::eventFilter(QObject *watched, QEvent *e)
         connect(actLoad, &QAction::triggered, this,
                 [this, item]()
         {
+            if(mTrain->isActive())
+            {
+                QMessageBox::warning(this, tr("Cannot Load Curve"),
+                                     tr("Please first deactivate Train."));
+                return;
+            }
+
             QString f = QFileDialog::getOpenFileName(this, tr("Open Speed Curve"));
             if(f.isEmpty())
                 return;
@@ -240,6 +265,16 @@ TrainTab::Item *TrainTab::createItem()
 
 void TrainTab::removeItem(Item *item)
 {
+    if(mTrain->isActive())
+    {
+        QMessageBox::warning(this, tr("Cannot Remove Loco"),
+                             tr("Please first deactivate Train."));
+        return;
+    }
+
+    if(!mTrain->removeLoco(item->loco))
+        return;
+
     int i = mGridLay->indexOf(item->frame);
     if(i >= 0)
     {
@@ -256,7 +291,6 @@ void TrainTab::removeItem(Item *item)
         }
     }
 
-    mTrain->removeLoco(item->loco);
     mItems.removeOne(item);
 
     delete item->frame;
