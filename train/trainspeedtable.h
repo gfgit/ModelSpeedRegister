@@ -1,7 +1,8 @@
 #ifndef TRAINSPEEDTABLE_H
 #define TRAINSPEEDTABLE_H
 
-#include <QVector>
+#include <memory>
+#include <vector>
 
 class LocoSpeedMapping;
 
@@ -13,48 +14,59 @@ public:
         NULL_TABLE_ENTRY = -1
     };
 
-    struct Item
-    {
-        int step = 0;
-        double speed = 0;
-    };
-
     struct Entry
     {
-        // Todo support arbitrary loco number in train
-        Item locoA;
-        Item locoB;
-        double avgSpeed = 0;
+        Entry() = default;
 
-        inline void updateAvg()
+        // Disable copy from lvalue.
+        Entry(const Entry&) = delete;
+        Entry& operator=(const Entry&) = delete;
+
+        // Move contructor
+        // NOTE: needed to store std::unique_ptr in QVector
+        Entry(Entry &&other)
         {
-            avgSpeed = (locoA.speed + locoB.speed) / 2.0;
+            stepForLoco_ = std::move(other.stepForLoco_);
+            avgSpeed = std::move(other.avgSpeed);
         }
 
-        inline Item itemForLoco(int idx) const
+        Entry&
+        operator=(Entry&& other)
         {
-            // TODO support more than 2 locos
-            return idx == 0 ? locoA : locoB;
+            stepForLoco_ = std::move(other.stepForLoco_);
+            avgSpeed = std::move(other.avgSpeed);
+            return *this;
+        }
+
+        std::unique_ptr<uint8_t[]> stepForLoco_;
+        double avgSpeed = 0;
+
+        inline uint8_t getStepForLoco(int idx) const
+        {
+            if(stepForLoco_)
+                return stepForLoco_[idx];
+            return 0;
         }
     };
 
     TrainSpeedTable();
 
-    typedef std::pair<int, Entry> ClosestMatchRet;
+    typedef std::pair<int, const Entry& > ClosestMatchRet;
 
     ClosestMatchRet getClosestMatch(int locoIdx, int step) const;
 
     ClosestMatchRet getClosestMatch(double speed) const;
 
-    inline int count() const { return mEntries.count(); }
-    Entry getEntryAt(int idx) const;
+    inline int count() const { return mEntries.size(); }
+    const Entry& getEntryAt(int idx) const;
 
-    static TrainSpeedTable buildTable(const LocoSpeedMapping& locoA, const LocoSpeedMapping &locoB);
+    static TrainSpeedTable buildTable(const std::vector<LocoSpeedMapping>& locoMappings);
 
 private:
-    QVector<Entry> mEntries;
-};
+    std::vector<Entry> mEntries;
+    int locoCount = 0;
 
-void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings);
+    static Entry nullEntry;
+};
 
 #endif // TRAINSPEEDTABLE_H

@@ -55,7 +55,7 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
 
     int locoIdx = getLocoIdx(loco);
 
-    if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
+    if(locoIdx < 0)
         return;
 
     bool invert = mLocomotives.at(locoIdx).invertDir;
@@ -80,11 +80,14 @@ void Train::onLocoChanged(Locomotive *loco, bool queued)
     onLocoChangedInternal(locoIdx, loco->targetSpeedStep());
 }
 
-void Train::addLoco(Locomotive *loco)
+bool Train::addLoco(Locomotive *loco)
 {
+    if(active)
+        return false;
+
     if(getLocoIdx(loco) != INVALID_LOCO_IDX)
     {
-        return; // Already added
+        return true; // Already added
     }
 
     mLocomotives.append(LocoItem{loco, false});
@@ -92,10 +95,15 @@ void Train::addLoco(Locomotive *loco)
 
     // Reset
     mSpeedTable = TrainSpeedTable();
+
+    return true;
 }
 
 bool Train::removeLoco(Locomotive *loco)
 {
+    if(active)
+        return false;
+
     int locoIdx = getLocoIdx(loco);
 
     if(locoIdx < 0)
@@ -119,11 +127,17 @@ void Train::updateSpeedTable()
         return;
     }
 
-    mSpeedTable = TrainSpeedTable::buildTable(mLocomotives.at(0).loco->speedMapping(),
-                                              mLocomotives.at(1).loco->speedMapping());
+    std::vector<LocoSpeedMapping> mappings;
+    mappings.reserve(mLocomotives.size());
+    for(int i = 0; i < mLocomotives.size(); i++)
+    {
+        mappings.push_back(mLocomotives.at(i).loco->speedMapping());
+    }
+
+    mSpeedTable = TrainSpeedTable::buildTable(mappings);
 
     int lastTableIdx = mSpeedTable.count() - 1;
-    auto lastEntry = mSpeedTable.getEntryAt(lastTableIdx);
+    const TrainSpeedTable::Entry& lastEntry = mSpeedTable.getEntryAt(lastTableIdx);
     mMaxSpeed.tableIdx = lastTableIdx;
     mMaxSpeed.speed = lastEntry.avgSpeed;
 }
@@ -229,8 +243,8 @@ void Train::applyDelayedSpeed()
     if(locoIdx == INVALID_LOCO_IDX)
         return;
 
-    auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
-    int step = entry.itemForLoco(locoIdx).step;
+    const auto& entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
+    int step = entry.getStepForLoco(locoIdx);
 
     driveLoco(locoIdx, step);
 }
@@ -240,8 +254,8 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
     if(!active)
         return;
 
-    TrainSpeedTable::Entry maxSpeedEntry = mSpeedTable.getEntryAt(mMaxSpeed.tableIdx);
-    int maxLocoStep = maxSpeedEntry.itemForLoco(locoIdx).step;
+    const TrainSpeedTable::Entry& maxSpeedEntry = mSpeedTable.getEntryAt(mMaxSpeed.tableIdx);
+    int maxLocoStep = maxSpeedEntry.getStepForLoco(locoIdx);
     if(step > maxLocoStep)
     {
         // Locomotive exceeded Train max speed, revert immediately
@@ -254,8 +268,13 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
 
     auto match = mSpeedTable.getClosestMatch(locoIdx, step);
 
+    SpeedPoint speedPoint;
+    speedPoint.speed = match.second.avgSpeed;
+    speedPoint.tableIdx = match.first;
+
     bool needsDelay = false;
-    const int newStep = match.second.itemForLoco(locoIdx).step;
+    const int newStep = match.second.getStepForLoco(locoIdx);
+
     if(newStep != step)
     {
         // Requested step was adjusted
@@ -279,8 +298,9 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
                 else
                     newTableIdx--;
 
-                match.first = newTableIdx;
-                match.second = mSpeedTable.getEntryAt(newTableIdx);
+                // Update speed point
+                speedPoint.tableIdx = newTableIdx;
+                speedPoint.speed = mSpeedTable.getEntryAt(newTableIdx).avgSpeed;
             }
             else if(oldStep < step && step > newStep ||
                     oldStep > step && step < newStep)
@@ -316,14 +336,10 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
         // At same speed, otherwise this locomotive would accelerate faster
         // or brake faster because it's the first one to receive commands
         // and would be out of sync with the others.
-        auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
-        int step = entry.itemForLoco(locoIdx).step;
+        const auto& entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
+        int step = entry.getStepForLoco(locoIdx);
         driveLoco(locoIdx, step);
     }
-
-    SpeedPoint speedPoint;
-    speedPoint.speed = match.second.avgSpeed;
-    speedPoint.tableIdx = match.first;
 
     setTargetSpeedInternal(speedPoint.speed, speedPoint.tableIdx,
                            needsDelay ? locoIdx : INVALID_LOCO_IDX);
@@ -451,7 +467,7 @@ void Train::updateAccelerationState()
     else
         return;
 
-    auto entry = mSpeedTable.getEntryAt(newTableIdx);
+    const auto& entry = mSpeedTable.getEntryAt(newTableIdx);
     SpeedPoint newSpeed;
     newSpeed.speed = entry.avgSpeed;
     newSpeed.tableIdx = newTableIdx;
@@ -488,7 +504,7 @@ void Train::updateAccelerationState()
 void Train::setSpeedInternal(const SpeedPoint &speedPoint)
 {
     mLastSetSpeed = speedPoint;
-    auto entry = mSpeedTable.getEntryAt(speedPoint.tableIdx);
+    const auto& entry = mSpeedTable.getEntryAt(speedPoint.tableIdx);
 
     // Apply speed to all locomotives
     for(int i = 0; i < mLocomotives.size(); i++)
@@ -502,7 +518,7 @@ void Train::setSpeedInternal(const SpeedPoint &speedPoint)
         if(item.invertDir)
             locoDir = oppositeDir(locoDir);
 
-        int step = entry.itemForLoco(i).step;
+        int step = entry.getStepForLoco(i);
 
         if(item.loco->targetSpeedStep() != step || item.loco->targetDirection() != locoDir)
         {
@@ -523,16 +539,32 @@ void Train::driveLoco(int locoIdx, int step)
     item.loco->driveLoco(step, locoDir);
 }
 
-void Train::setActive(bool newActive)
+bool Train::setActive(bool newActive)
 {
+    if(newActive == active)
+        return true;
+
+    if(!newActive)
+    {
+        // Prevent deactivation if train is still moving
+        if(mLastSetSpeed.tableIdx != TrainSpeedTable::NULL_TABLE_ENTRY)
+            return false;
+    }
+
     active = newActive;
     if(active)
     {
+        updateSpeedTable();
+        setEmergencyStop();
         mLastSetSpeed = mTargetSpeed = SpeedPoint();
         setDirection(mDirection); // Force update direction
     }
     else
         stopDelayedSpeedApply();
+
+    emit activeChanged(active);
+
+    return true;
 }
 
 void Train::setLocoInvertDir(int idx, bool invertDir)

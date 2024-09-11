@@ -2,10 +2,7 @@
 
 #include "locospeedmapping.h"
 
-#include <QDebug>
-
-#include <QFile>
-#include <QTextStream>
+TrainSpeedTable::Entry TrainSpeedTable::nullEntry = TrainSpeedTable::Entry();
 
 TrainSpeedTable::TrainSpeedTable()
 {
@@ -16,28 +13,27 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(int locoIdx, i
 {
     if(step == 0)
     {
-        return {NULL_TABLE_ENTRY, Entry{Item{0, 0}, Item{0, 0}}};
+        return {NULL_TABLE_ENTRY, nullEntry};
     }
 
-    if(locoIdx < 0 || locoIdx >= 2) // TODO: support more than 2 locos
-        return {NULL_TABLE_ENTRY, {}}; // Error
+    if(locoIdx < 0)
+        return {NULL_TABLE_ENTRY, nullEntry}; // Error
 
     for(int i = 0; i < mEntries.size(); i++)
     {
         const Entry &e = mEntries.at(i);
-        const Item &item = e.itemForLoco(locoIdx);
-        if(item.step == step)
+        const int candidateStep = e.getStepForLoco(locoIdx);
+        if(candidateStep == step)
             return {i, e}; // Exact match
 
-        if(item.step > step)
+        if(candidateStep > step)
         {
             // We got closest higher step
             // Check if lower step is even closer
             if(i > 0)
             {
                 const Entry &prev = mEntries.at(i - 1);
-                const Item &prevItem = prev.itemForLoco(locoIdx);
-                if((step - prevItem.step) < (item.step - step))
+                if((step - prev.getStepForLoco(locoIdx)) < (candidateStep - step))
                 {
                     // Previous match is closer
                     return {i - 1, prev};
@@ -51,15 +47,13 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(int locoIdx, i
 
     // Return highest match if available
     if(!mEntries.empty())
-        return {mEntries.size(), mEntries.last()};
+        return {mEntries.size() - 1, *mEntries.rbegin()};
 
-    return {NULL_TABLE_ENTRY, {}}; // Empty table
+    return {NULL_TABLE_ENTRY, nullEntry}; // Empty table
 }
 
 TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) const
 {
-    int lastIdx = 0;
-
     for(int i = 0; i < mEntries.size(); i++)
     {
         const Entry& entry = mEntries.at(i);
@@ -75,148 +69,39 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) 
             }
 
             // No matches below this, return zero
-            return {NULL_TABLE_ENTRY, {}};
+            return {NULL_TABLE_ENTRY, nullEntry};
         }
     }
 
     // Return highest match if available
     if(!mEntries.empty())
-        return {mEntries.size(), mEntries.last()};
+        return {mEntries.size() - 1, *mEntries.rbegin()};
 
-    return {NULL_TABLE_ENTRY, {}}; // Empty table
+    return {NULL_TABLE_ENTRY, nullEntry}; // Empty table
 }
 
-TrainSpeedTable::Entry TrainSpeedTable::getEntryAt(int idx) const
+const TrainSpeedTable::Entry& TrainSpeedTable::getEntryAt(int idx) const
 {
     // NULL_TABLE_ENTRY returns null Entry as expected!
-    return mEntries.value(idx, {});
+    if(idx == NULL_TABLE_ENTRY)
+        return nullEntry;
+    return mEntries.at(idx);
 }
 
-TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const LocoSpeedMapping &locoB)
+TrainSpeedTable TrainSpeedTable::buildTable(const std::vector<LocoSpeedMapping> &locoMappings)
 {
     // TODO: prefer pushing/pulling, more than 2 locos
 
     TrainSpeedTable table;
 
-    // Build a table with A speed matching a B speed
-    int stepB = 1;
-    for(int stepA = 1; stepA <= 126; stepA++)
-    {
-        double speedA = locoA.getSpeedForStep(stepA);
-        if(qFuzzyIsNull(speedA))
-            continue;
-
-        Entry e;
-        e.locoA.step = stepA;
-        e.locoA.speed = speedA;
-
-        bool inserted = false;
-        for(; stepB <= 126; stepB++)
-        {
-            double speedB = locoB.getSpeedForStep(stepB);
-            if(qFuzzyIsNull(speedB))
-                continue;
-
-            e.locoB.step = stepB;
-            e.locoB.speed = speedB;
-            e.updateAvg();
-
-            if(qFuzzyCompare(speedA, speedB))
-            {
-                // Exact match!!!
-                table.mEntries.append(e);
-                inserted = true;
-                break;
-            }
-            else if(speedB > speedA)
-            {
-                // We got closest higher speed
-                if(stepB > 0)
-                {
-                    double prevSpeedB = locoB.getSpeedForStep(stepB - 1);
-                    if((speedA - prevSpeedB) < (speedB - speedA))
-                    {
-                        // Previous match is closer
-                        e.locoB.step = stepB - 1;
-                        e.locoB.speed = prevSpeedB;
-                        e.updateAvg();
-
-                        // Append only if not already contained
-                        if(table.mEntries.isEmpty() || table.mEntries.last().locoA.step != stepA)
-                        {
-                            table.mEntries.append(e);
-                            inserted = true;
-                        }
-                    }
-                    else
-                    {
-                        table.mEntries.append(e);
-                        inserted = true;
-                    }
-                }
-                else
-                {
-                    table.mEntries.append(e);
-                    inserted = true;
-                }
-                break;
-            }
-        }
-
-        if(!inserted)
-        {
-            // Match with highest available B speed
-            e.locoB.step = 126;
-            e.locoB.speed = locoB.getSpeedForStep(126);
-            e.updateAvg();
-            table.mEntries.append(e);
-        }
-    }
-
-    // Now we keep only closest matches for given B speed
-    // This way both stepA and stepB are unique for each entry
-
-    int previousStep = 0;
-    double previousDelta = 0;
-
-    auto it = table.mEntries.begin();
-    while(it != table.mEntries.end())
-    {
-        double delta = abs(it->locoA.speed - it->locoB.speed);
-
-        if(previousStep == it->locoB.step)
-        {
-            // Check if we have a better match
-            if(delta < previousDelta)
-            {
-                // Erase previous entry
-                it = table.mEntries.erase(it - 1);
-            }
-            else
-            {
-                // Delete ourself
-                it = table.mEntries.erase(it);
-                continue;
-            }
-        }
-
-        previousStep = it->locoB.step;
-        previousDelta = delta;
-        it++;
-    }
-
-    return table;
-}
-
-void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
-{
     const int NUM_LOCOS = locoMappings.size();
     const int LAST_LOCO = NUM_LOCOS - 1;
+    table.locoCount = NUM_LOCOS;
 
     if(NUM_LOCOS < 2)
-        return; // Error?
+        return table; // Error?
 
-    double maxTrainSpeed = locoMappings.first().getSpeedForStep(126);
+    double maxTrainSpeed = locoMappings.at(0).getSpeedForStep(126);
     for(int locoIdx = 1; locoIdx < NUM_LOCOS; locoIdx++)
     {
         double maxSpeed = locoMappings.at(locoIdx).getSpeedForStep(126);
@@ -236,20 +121,20 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
         double currentSpeed = 0;
     };
 
-    struct SpeedEntry
-    {
-        double maxDiff;
-        double avgSpeed;
-        QVector<int> stepForLoco;
-    };
-
     const double MAX_SPEED_DIFF = 0.005;
     maxTrainSpeed += MAX_SPEED_DIFF;
 
-    QVector<LocoStepCache> stepCache;
+    std::vector<LocoStepCache> stepCache;
     stepCache.reserve(NUM_LOCOS);
 
-    QVector<SpeedEntry> entries;
+    // These 2 vector are in sync.
+    // Diff vector will be discarded in the end
+    // Only entries are stored in the final table
+    std::vector<Entry>& entries = table.mEntries;
+    std::vector<double> diffVector;
+
+    entries.reserve(200);
+    diffVector.reserve(200);
 
     for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
     {
@@ -257,10 +142,9 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
         item.maxStep = locoMappings.at(locoIdx).stepLowerBound(maxTrainSpeed);
         if(item.maxStep == 0)
             item.maxStep = 126;
-        stepCache.append(item);
+        stepCache.push_back(item);
     }
 
-    LocoStepCache& firstLocoRef = stepCache.first();
     int currentLocoIdx = 0;
 
     bool beginNewRound = true;
@@ -268,7 +152,7 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
     double minAcceptedSpeed = 0;
     double maxAcceptedSpeed = 0;
 
-    while(firstLocoRef.currentStep <= firstLocoRef.maxStep)
+    while(stepCache[0].currentStep <= stepCache[0].maxStep)
     {
         const LocoSpeedMapping& mapping = locoMappings.at(currentLocoIdx);
         LocoStepCache& item = stepCache[currentLocoIdx];
@@ -347,27 +231,32 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
         }
 
         // We are last loco, save speed tuple
-        SpeedEntry entry;
-        entry.stepForLoco.resize(NUM_LOCOS);
+        Entry entry;
+        entry.stepForLoco_.reset(new uint8_t[NUM_LOCOS]);
 
         double speedSum = 0;
         for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
         {
             const LocoStepCache& otherItem = stepCache.at(locoIdx);
 
-            entry.stepForLoco[locoIdx] = otherItem.currentStep;
+            entry.stepForLoco_[locoIdx] = otherItem.currentStep;
             speedSum += otherItem.currentSpeed;
         }
 
-        entry.maxDiff = maxDiff;
         entry.avgSpeed = speedSum / double(NUM_LOCOS);
 
         if(canCompareToLastInserted)
         {
-            if(entries.last().maxDiff > entry.maxDiff)
+            if(*diffVector.rbegin() > maxDiff)
             {
                 // We are better than previous match, replace it
-                entries.last() = entry;
+
+                std::memcpy(entries.rbegin()->stepForLoco_.get(),
+                            entry.stepForLoco_.get(),
+                            NUM_LOCOS * sizeof(uint8_t));
+                entries.rbegin()->avgSpeed = entry.avgSpeed;
+
+                *diffVector.rbegin() = maxDiff;
             }
 
             // If not better than previous, no point in addint it
@@ -375,40 +264,46 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
         }
 
         // First good match of new step combination
-        entries.append(entry);
+        entries.push_back(std::move(entry));
+        diffVector.push_back(maxDiff);
         canCompareToLastInserted = true;
     }
 
     if(entries.empty())
-        return; // Error?
+        return table; // Error?
 
     // Remove duplicated steps, keep match with lower maxDiff
     for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
     {
-        const SpeedEntry& firstEntry = entries.first();
-        int currentStep = firstEntry.stepForLoco.at(locoIdx);
-        int firstTableIdx = 0;
+        const Entry& firstEntry = entries.at(0);
+        double bestEntryDiff = diffVector.at(0);
         int bestEntryIdx = 0;
-        double bestEntryDiff = firstEntry.maxDiff;
+        int firstTableIdx = 0;
+        int currentStep = firstEntry.stepForLoco_[locoIdx];
 
         for(int tableIdx = 1; tableIdx < entries.size(); tableIdx++)
         {
-            SpeedEntry entry = entries.at(tableIdx);
-            if(entry.stepForLoco.at(locoIdx) == currentStep)
+            int step = entries.at(tableIdx).stepForLoco_[locoIdx];
+            if(step == currentStep)
             {
-                if(entry.maxDiff < bestEntryDiff)
+                const double maxDiff = diffVector.at(tableIdx);
+                if(maxDiff < bestEntryDiff)
                 {
                     bestEntryIdx = tableIdx;
-                    bestEntryDiff = entry.maxDiff;
+                    bestEntryDiff = maxDiff;
                 }
                 continue;
             }
 
             // We reached next step
             // Cut all previous step entries, keep only best
-            for(int i = firstTableIdx; i < bestEntryIdx; i++)
+            if(firstTableIdx < bestEntryIdx)
             {
-                entries.removeAt(firstTableIdx); //TODO: optimize with ranges
+                // Best entry is not erased
+                entries.erase(entries.begin() + firstTableIdx,
+                              entries.begin() + bestEntryIdx);
+                diffVector.erase(diffVector.begin() + firstTableIdx,
+                              diffVector.begin() + bestEntryIdx);
             }
 
             // Shift all indexes
@@ -416,9 +311,15 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
             bestEntryIdx = firstTableIdx;
             tableIdx -= idxShift;
 
-            for(int i = bestEntryIdx + 1; i < tableIdx; i++)
+            // Remove all after best entry up to last of this step
+            int firstToErase = bestEntryIdx + 1;
+            if(firstToErase < tableIdx)
             {
-                entries.removeAt(bestEntryIdx + 1); //TODO: optimize with ranges
+                // Best entry is not erased
+                entries.erase(entries.begin() + firstToErase,
+                              entries.begin() + tableIdx);
+                diffVector.erase(diffVector.begin() + firstToErase,
+                              diffVector.begin() + tableIdx);
             }
 
             // Now best entry is at first index, we are just after it
@@ -427,67 +328,36 @@ void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings)
             // Re-init
             firstTableIdx = tableIdx;
             bestEntryIdx = firstTableIdx;
-            currentStep = entry.stepForLoco.at(locoIdx);
-            bestEntryDiff = entry.maxDiff;
+            currentStep = step;
+            bestEntryDiff = diffVector.at(tableIdx);
         }
 
         if(firstTableIdx < (entries.size() - 1))
         {
             // Cut all last step entries, keep only best
-            for(int i = firstTableIdx; i < bestEntryIdx; i++)
+            if(firstTableIdx < bestEntryIdx)
             {
-                entries.removeAt(firstTableIdx); //TODO: optimize with ranges
+                // Best entry is not erased
+                entries.erase(entries.begin() + firstTableIdx,
+                              entries.begin() + bestEntryIdx);
+                diffVector.erase(diffVector.begin() + firstTableIdx,
+                              diffVector.begin() + bestEntryIdx);
             }
 
             // Shift all indexes
             bestEntryIdx = firstTableIdx;
-            int oldSize = entries.size();
 
-            for(int i = bestEntryIdx + 1; i < oldSize; i++)
-            {
-                entries.removeAt(bestEntryIdx + 1); //TODO: optimize with ranges
-            }
+            // Remove all after best entry
+            int firstToErase = bestEntryIdx + 1;
+            entries.erase(entries.begin() + firstToErase,
+                          entries.end());
+            diffVector.erase(diffVector.begin() + firstToErase,
+                          diffVector.end());
         }
     }
 
-    qDebug() << entries.size();
+    // Save up some memory
+    table.mEntries.shrink_to_fit();
 
-    QFile f("/home/filippo/Documenti/SPEED_MAPPINGS/Nuovi_SPEED_MAPPINGS/test_triple_2.txt");
-    f.open(QFile::WriteOnly);
-
-    QTextStream txt(&f);
-
-    txt << "TEST: nLoco: " << NUM_LOCOS << " nEntries: " << entries.size() << Qt::endl;
-    txt << "Nomi:" << Qt::endl;
-
-    for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
-    {
-        txt << locoIdx << " " << locoMappings.at(locoIdx).name() << Qt::endl;
-    }
-
-    txt << "TABLE:" << Qt::endl;
-
-    txt << qSetRealNumberPrecision(5) << Qt::fixed;
-
-    for(int tableIdx = 1; tableIdx < entries.size(); tableIdx++)
-    {
-        const SpeedEntry& entry = entries.at(tableIdx);
-
-        txt << qSetFieldWidth(3) << tableIdx << "\t";
-        txt << qSetFieldWidth(10) << entry.avgSpeed << "\t" << entry.maxDiff << "\t";
-
-        txt << qSetFieldWidth(3);
-
-        for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
-        {
-            if(locoIdx > 0) txt << "\t";
-            txt << entry.stepForLoco.at(locoIdx);
-        }
-
-        txt << Qt::endl;
-    }
-
-    txt.flush();
-    f.flush();
-    f.close();
+    return table;
 }
