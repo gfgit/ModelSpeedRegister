@@ -211,7 +211,7 @@ void Train::startDelayedSpeedApply(int locoIdx)
     mApplySpeedLocoIdx = locoIdx;
 
     killTimer(mApplySpeedTimerId);
-    mApplySpeedTimerId = startTimer(500);
+    mApplySpeedTimerId = startTimer(600);
 }
 
 void Train::stopDelayedSpeedApply()
