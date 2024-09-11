@@ -105,8 +105,8 @@ private:
     QElapsedTimer mAccelerationElapsed;
 
     // TODO: allow setting
-    double mAccelerationRate = 1.0 / 87.0;
-    double mDecelerationRate = 0.5 / 87.0;
+    double mAccelerationRate = 1.5 / 87.0;
+    double mDecelerationRate = 1.0 / 87.0;
 
     State mState = State::Idle;
 };
