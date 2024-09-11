@@ -282,16 +282,23 @@ void Train::onLocoChangedInternal(int locoIdx, int step)
         }
     }
 
-    if(!needsDelay)
+    if(needsDelay)
     {
-        // Reset to last set step
-        // This allows to be more in sync while accelerating
+        // Keep step set by user
+        mLocomotives[locoIdx].lastSetStep = newStep;
+    }
+    else
+    {
+        // We will accelerate/brake up to requested step
+        // But first reset to last set step
+        // This is needed so all locomotives start accelerating/braking
+        // At same speed, otherwise this locomotive would accelerate faster
+        // or brake faster because it's the first one to receive commands
+        // and would be out of sync with the others.
         auto entry = mSpeedTable.getEntryAt(mLastSetSpeed.tableIdx);
         int step = entry.itemForLoco(locoIdx).step;
         driveLoco(locoIdx, step);
     }
-
-    mLocomotives[locoIdx].lastSetStep = newStep;
 
     SpeedPoint speedPoint;
     speedPoint.speed = match.second.avgSpeed;
