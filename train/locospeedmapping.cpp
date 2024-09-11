@@ -15,6 +15,30 @@ double LocoSpeedMapping::getSpeedForStep(int step) const
     return mSpeed.at(step - 1); // We do not store zero so index is step - 1
 }
 
+int LocoSpeedMapping::stepUpperBound(double speed) const
+{
+    auto it = std::upper_bound(mSpeed.begin(), mSpeed.end(), speed);
+    if(it != mSpeed.end())
+    {
+        int idx = std::distance(mSpeed.begin(), it);
+        int step = idx + 1; // We do not store zero so step is index + 1
+        return step;
+    }
+    return 0;
+}
+
+int LocoSpeedMapping::stepLowerBound(double speed) const
+{
+    auto it = std::lower_bound(mSpeed.begin(), mSpeed.end(), speed);
+    if(it != mSpeed.end())
+    {
+        int idx = std::distance(mSpeed.begin(), it);
+        int step = idx + 1; // We do not store zero so step is index + 1
+        return step;
+    }
+    return 0;
+}
+
 int LocoSpeedMapping::address() const
 {
     return mAddress;

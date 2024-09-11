@@ -11,6 +11,9 @@ public:
 
     double getSpeedForStep(int step) const;
 
+    int stepUpperBound(double speed) const;
+    int stepLowerBound(double speed) const;
+
     int address() const;
 
     QString name() const;
