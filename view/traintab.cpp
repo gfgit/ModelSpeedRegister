@@ -52,9 +52,9 @@ bool loadSpeedCurve(const QString& fileName, Locomotive *loco)
         if(curve.size() != 127 && curve.size() != 126)
             return false;
 
-        int step = 0;
+        int step = 1;
         if(curve.size() == 127)
-            step = 1;
+            step = 0;
 
         for(auto val : curve)
         {
