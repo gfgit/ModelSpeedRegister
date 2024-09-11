@@ -51,64 +51,64 @@ void printSeries(IDataSeries *s)
 
 int main(int argc, char *argv[])
 {
-    MockSeries mock;
+    // MockSeries mock;
 
-    MovingAverageSeries avg(3);
-    avg.setSource(&mock);
+    // MovingAverageSeries avg(3);
+    // avg.setSource(&mock);
 
-    mock.addPoint(0, {0, 1});
+    // mock.addPoint(0, {0, 1});
 
-    qDebug() << "ROUND 1";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
-
-
-    mock.addPoint(1, {0, 1});
-    mock.addPoint(2, {0, 1});
-
-    qDebug() << "ROUND 2";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
+    // qDebug() << "ROUND 1";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
 
 
-    mock.updatePoint(1, {0, 4});
+    // mock.addPoint(1, {0, 1});
+    // mock.addPoint(2, {0, 1});
 
-    qDebug() << "ROUND 3";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
-
-
-    mock.addPoint(1, {0, 4});
-
-    qDebug() << "ROUND 4";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
+    // qDebug() << "ROUND 2";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
 
 
-    mock.removePoint(1);
+    // mock.updatePoint(1, {0, 4});
 
-    qDebug() << "ROUND 5";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
+    // qDebug() << "ROUND 3";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
 
 
-    mock.removePoint(1);
+    // mock.addPoint(1, {0, 4});
 
-    qDebug() << "ROUND 6";
-    printSeries(&mock);
-    qDebug() << "";
-    printSeries(&avg);
-    qDebug() << "\n";
+    // qDebug() << "ROUND 4";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
+
+
+    // mock.removePoint(1);
+
+    // qDebug() << "ROUND 5";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
+
+
+    // mock.removePoint(1);
+
+    // qDebug() << "ROUND 6";
+    // printSeries(&mock);
+    // qDebug() << "";
+    // printSeries(&avg);
+    // qDebug() << "\n";
 
 
 
