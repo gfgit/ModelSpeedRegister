@@ -111,7 +111,6 @@ TrainSpeedTable TrainSpeedTable::buildTable(const std::vector<LocoSpeedMapping> 
 
     struct LocoStepCache
     {
-        int maxStep = 0;
         int currentStep = 0;
         int minAcceptedStep = 0;
         int maxAcceptedStep = 0;
@@ -125,7 +124,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const std::vector<LocoSpeedMapping> 
     maxTrainSpeed += MAX_SPEED_DIFF;
 
     std::vector<LocoStepCache> stepCache;
-    stepCache.reserve(NUM_LOCOS);
+    stepCache.resize(NUM_LOCOS, LocoStepCache());
 
     // These 2 vector are in sync.
     // Diff vector will be discarded in the end
@@ -136,23 +135,16 @@ TrainSpeedTable TrainSpeedTable::buildTable(const std::vector<LocoSpeedMapping> 
     entries.reserve(200);
     diffVector.reserve(200);
 
-    for(int locoIdx = 0; locoIdx < NUM_LOCOS; locoIdx++)
-    {
-        LocoStepCache item;
-        item.maxStep = locoMappings.at(locoIdx).stepLowerBound(maxTrainSpeed);
-        if(item.maxStep == 0)
-            item.maxStep = 126;
-        stepCache.push_back(item);
-    }
+    int firstLocoMaxStep = locoMappings.at(0).stepLowerBound(maxTrainSpeed);
+    if(firstLocoMaxStep == 0)
+        firstLocoMaxStep = 126;
 
     int currentLocoIdx = 0;
 
     bool beginNewRound = true;
     bool canCompareToLastInserted = false;
-    double minAcceptedSpeed = 0;
-    double maxAcceptedSpeed = 0;
 
-    while(stepCache[0].currentStep <= stepCache[0].maxStep)
+    while(stepCache[0].currentStep <= firstLocoMaxStep)
     {
         const LocoSpeedMapping& mapping = locoMappings.at(currentLocoIdx);
         LocoStepCache& item = stepCache[currentLocoIdx];
@@ -161,8 +153,9 @@ TrainSpeedTable TrainSpeedTable::buildTable(const std::vector<LocoSpeedMapping> 
         {
             item.currentStep++;
             item.currentSpeed = mapping.getSpeedForStep(item.currentStep);
-            minAcceptedSpeed = item.currentSpeed - MAX_SPEED_DIFF;
-            maxAcceptedSpeed = item.currentSpeed + MAX_SPEED_DIFF;
+
+            const double minAcceptedSpeed = item.currentSpeed - MAX_SPEED_DIFF;
+            const double maxAcceptedSpeed = item.currentSpeed + MAX_SPEED_DIFF;
             item.minSpeedSoFar = item.maxSpeedSoFar = item.currentSpeed;
 
             for(int otherLocoIdx = 1; otherLocoIdx < locoMappings.size(); otherLocoIdx++)
