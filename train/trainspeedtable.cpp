@@ -89,7 +89,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
 
     // Build a table with A speed matching a B speed
     int stepB = 1;
-    for(int stepA = 1; stepA < 126; stepA++)
+    for(int stepA = 1; stepA <= 126; stepA++)
     {
         double speedA = locoA.getSpeedForStep(stepA);
         if(qFuzzyIsNull(speedA))
@@ -100,7 +100,7 @@ TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const
         e.locoA.speed = speedA;
 
         bool inserted = false;
-        for(; stepB < 126; stepB++)
+        for(; stepB <= 126; stepB++)
         {
             double speedB = locoB.getSpeedForStep(stepB);
             if(qFuzzyIsNull(speedB))
