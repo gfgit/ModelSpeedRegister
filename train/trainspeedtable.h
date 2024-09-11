@@ -55,4 +55,6 @@ private:
     QVector<Entry> mEntries;
 };
 
+void getTableFromLocoArray(const QVector<LocoSpeedMapping>& locoMappings);
+
 #endif // TRAINSPEEDTABLE_H
