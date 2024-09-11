@@ -81,6 +81,12 @@ TrainSpeedTable::ClosestMatchRet TrainSpeedTable::getClosestMatch(double speed) 
     return {NULL_TABLE_ENTRY, {}}; // Empty table
 }
 
+TrainSpeedTable::Entry TrainSpeedTable::getEntryAt(int idx) const
+{
+    // NULL_TABLE_ENTRY returns null Entry as expected!
+    return mEntries.value(idx, {});
+}
+
 TrainSpeedTable TrainSpeedTable::buildTable(const LocoSpeedMapping &locoA, const LocoSpeedMapping &locoB)
 {
     // TODO: prefer pushing/pulling, more than 2 locos

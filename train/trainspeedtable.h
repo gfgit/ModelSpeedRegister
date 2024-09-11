@@ -47,7 +47,7 @@ public:
     ClosestMatchRet getClosestMatch(double speed) const;
 
     inline int count() const { return mEntries.count(); }
-    inline Entry getEntryAt(int idx) const { return mEntries.value(idx, {}); }
+    Entry getEntryAt(int idx) const;
 
     static TrainSpeedTable buildTable(const LocoSpeedMapping& locoA, const LocoSpeedMapping &locoB);
 
