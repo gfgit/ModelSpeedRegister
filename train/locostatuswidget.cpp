@@ -77,13 +77,25 @@ void LocoStatusWidget::updateStatus()
     mSpinBox->setValue(speedStep);
     mSpinBox->blockSignals(false);
 
+    QString speedStepStr;
+    if(speedStep == EMERGENCY_STOP)
+        speedStepStr = tr("Stop");
+    else
+        speedStepStr = QString::number(speedStep).rightJustified(4);
+
+    QString targetSpeedStepStr;
+    if(targetSpeedStep == EMERGENCY_STOP)
+        targetSpeedStepStr = tr("Stop");
+    else
+        targetSpeedStepStr = QString::number(targetSpeedStep).rightJustified(4);
+
     mLabel->setText(QLatin1String("%1\n"
                           "%2 %3 - %4 %5\n"
                           "%6 m/s\n"
                           "%7 km/h")
                 .arg(name)
-                .arg(speedStep).arg(direction == LocomotiveDirection::Forward ? 'F' : 'R')
-                .arg(targetSpeedStep).arg(targetDirection == LocomotiveDirection::Forward ? 'F' : 'R')
+                .arg(speedStepStr).arg(direction == LocomotiveDirection::Forward ? 'F' : 'R')
+                .arg(targetSpeedStepStr).arg(targetDirection == LocomotiveDirection::Forward ? 'F' : 'R')
                 .arg(metersPerSecond, 0, 'f', 4)
                 .arg(realKmH, 0, 'f', 2));
 }
